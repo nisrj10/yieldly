@@ -262,7 +262,12 @@ export default function HouseBudget() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">House Budget</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900">House Budget</h1>
+            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
+              v{budget.id}
+            </span>
+          </div>
           <p className="text-gray-600">Monthly household financial planning</p>
         </div>
         <button onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-2">
