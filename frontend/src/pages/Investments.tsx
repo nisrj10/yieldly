@@ -35,6 +35,7 @@ interface Portfolio {
   ytd_gain_loss_percent: number;
   notes: string;
   is_active: boolean;
+  updated_at: string;
 }
 
 interface PortfolioSummary {
@@ -145,6 +146,15 @@ function PortfolioCard({
           {portfolio.provider && <span className="ml-2">• {portfolio.provider}</span>}
         </div>
       )}
+
+      {/* Last Updated */}
+      <div className="mt-3 pt-3 border-t border-gray-700 text-xs text-gray-500">
+        Updated {new Date(portfolio.updated_at).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })}
+      </div>
 
       {/* Edit button (shows on hover) */}
       <button
