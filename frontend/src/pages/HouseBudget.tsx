@@ -639,8 +639,46 @@ export default function HouseBudget() {
         );
         const essentialExpensesTotal = essentialExpenses.reduce((s, i) => s + Number(i.amount), 0);
 
+        // Nishant's personal expenses (Personal Allowance, etc.)
+        const personalExpenses = budget.line_items.filter(i =>
+          i.category_type === 'expense' &&
+          i.split_type === 'personal_primary' &&
+          i.group === 'Personal'
+        );
+        const personalExpensesTotal = personalExpenses.reduce((s, i) => s + Number(i.amount), 0);
+
         return (
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Nishant's Personal Allowance */}
+            <div className="card border-2 border-orange-200">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
+                  <Wallet className="text-white" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Personal Spend</h3>
+                  <p className="text-sm text-gray-500">Nishant's monthly allowance</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                {personalExpenses.map(item => (
+                  <div key={item.id} className="flex justify-between text-sm py-2 px-3 bg-orange-50 rounded-lg">
+                    <span>{item.name}</span>
+                    <span className="font-medium">{formatCurrency(item.amount)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-orange-100 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total Personal Spend</span>
+                  <span className="text-xl font-bold text-orange-600">{formatCurrency(personalExpensesTotal)}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{((personalExpensesTotal / availablePot) * 100).toFixed(1)}% of available pot</p>
+              </div>
+            </div>
+
             {/* Personal Savings */}
             <div className="card border-2 border-indigo-200">
               <div className="flex items-center gap-3 mb-4 pb-4 border-b">
@@ -702,7 +740,7 @@ export default function HouseBudget() {
             </div>
 
             {/* Money Flow Summary */}
-            <div className="card md:col-span-2 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+            <div className="card md:col-span-3 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
               <h3 className="font-semibold mb-6 flex items-center gap-2">
                 <ArrowRight size={20} />
                 Monthly Money Flow
