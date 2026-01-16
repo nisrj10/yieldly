@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog, CategoryExclusion
+from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog, CategoryExclusion, Portfolio, PortfolioSnapshot
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -277,3 +277,36 @@ class CategoryExclusionSerializer(serializers.ModelSerializer):
         model = CategoryExclusion
         fields = ['id', 'transaction', 'transaction_description', 'transaction_amount', 'transaction_date', 'category', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+
+class PortfolioSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PortfolioSnapshot
+        fields = ['id', 'portfolio', 'year', 'month', 'value', 'notes', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class PortfolioSerializer(serializers.ModelSerializer):
+    portfolio_type_display = serializers.CharField(source='get_portfolio_type_display', read_only=True)
+    risk_level_display = serializers.CharField(source='get_risk_level_display', read_only=True)
+    total_gain_loss = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    total_gain_loss_percent = serializers.DecimalField(max_digits=8, decimal_places=2, read_only=True)
+    ytd_gain_loss = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    ytd_gain_loss_percent = serializers.DecimalField(max_digits=8, decimal_places=2, read_only=True)
+    recent_snapshots = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Portfolio
+        fields = [
+            'id', 'name', 'portfolio_type', 'portfolio_type_display',
+            'risk_level', 'risk_level_display', 'provider', 'owner_name',
+            'initial_value', 'start_date', 'current_value', 'year_start_value',
+            'total_gain_loss', 'total_gain_loss_percent',
+            'ytd_gain_loss', 'ytd_gain_loss_percent',
+            'notes', 'is_active', 'created_at', 'updated_at', 'recent_snapshots'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_recent_snapshots(self, obj):
+        snapshots = obj.snapshots.all()[:12]  # Last 12 months
+        return PortfolioSnapshotSerializer(snapshots, many=True).data

@@ -212,6 +212,103 @@ class SavingsGoal(models.Model):
         return f"{self.name}: {self.current_amount}/{self.target_amount}"
 
 
+class Portfolio(models.Model):
+    """Track investment portfolios and savings accounts."""
+    PORTFOLIO_TYPES = [
+        ('isa', 'ISA'),
+        ('jisa', 'Junior ISA'),
+        ('pension', 'Pension'),
+        ('gia', 'General Investment'),
+        ('savings', 'Savings Account'),
+        ('emergency', 'Emergency Fund'),
+        ('other', 'Other'),
+    ]
+
+    RISK_LEVELS = [
+        ('1', 'Level 1/5 - Very Low'),
+        ('2', 'Level 2/5 - Low'),
+        ('3', 'Level 3/5 - Medium'),
+        ('4', 'Level 4/5 - Medium-High'),
+        ('5', 'Level 5/5 - High'),
+        ('none', 'N/A'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='portfolios'
+    )
+    name = models.CharField(max_length=100)
+    portfolio_type = models.CharField(max_length=20, choices=PORTFOLIO_TYPES)
+    risk_level = models.CharField(max_length=10, choices=RISK_LEVELS, default='none')
+    provider = models.CharField(max_length=100, blank=True)  # e.g., "Nutmeg", "Vanguard"
+
+    # Initial investment info
+    initial_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    start_date = models.DateField()
+
+    # Current value (updated monthly)
+    current_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Year start value (for YTD calculations)
+    year_start_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    # Owner info (for whose account it is)
+    owner_name = models.CharField(max_length=100, blank=True)  # e.g., "Nishant", "Kiaan", "Krati"
+
+    notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-current_value']
+
+    @property
+    def total_gain_loss(self):
+        return self.current_value - self.initial_value
+
+    @property
+    def total_gain_loss_percent(self):
+        if self.initial_value > 0:
+            return (self.total_gain_loss / self.initial_value) * 100
+        return 0
+
+    @property
+    def ytd_gain_loss(self):
+        return self.current_value - self.year_start_value
+
+    @property
+    def ytd_gain_loss_percent(self):
+        if self.year_start_value > 0:
+            return (self.ytd_gain_loss / self.year_start_value) * 100
+        return 0
+
+    def __str__(self):
+        return f"{self.name} - {self.get_portfolio_type_display()}"
+
+
+class PortfolioSnapshot(models.Model):
+    """Monthly snapshots of portfolio values for historical tracking."""
+    portfolio = models.ForeignKey(
+        Portfolio,
+        on_delete=models.CASCADE,
+        related_name='snapshots'
+    )
+    year = models.IntegerField()
+    month = models.IntegerField()  # 1-12
+    value = models.DecimalField(max_digits=12, decimal_places=2)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['portfolio', 'year', 'month']
+        ordering = ['-year', '-month']
+
+    def __str__(self):
+        return f"{self.portfolio.name} - {self.month}/{self.year}: £{self.value}"
+
+
 class MonthlyNote(models.Model):
     """Monthly financial notes and comments for tracking."""
     user = models.ForeignKey(

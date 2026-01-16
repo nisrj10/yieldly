@@ -6,7 +6,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta, date
 import calendar
-from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog, CategoryExclusion
+from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog, CategoryExclusion, Portfolio, PortfolioSnapshot
 from .serializers import (
     CategorySerializer,
     AccountSerializer,
@@ -20,6 +20,8 @@ from .serializers import (
     BudgetLineItemSerializer,
     BudgetChangeLogSerializer,
     CategoryExclusionSerializer,
+    PortfolioSerializer,
+    PortfolioSnapshotSerializer,
 )
 
 
@@ -600,6 +602,80 @@ class BudgetLineItemViewSet(viewsets.ModelViewSet):
             note=f'Removed from {instance.group}' if instance.group else 'Removed'
         )
         instance.delete()
+
+
+class PortfolioViewSet(viewsets.ModelViewSet):
+    serializer_class = PortfolioSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Portfolio.objects.filter(user=self.request.user, is_active=True).prefetch_related('snapshots')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def update_value(self, request, pk=None):
+        """Update the current value of a portfolio and create a snapshot."""
+        portfolio = self.get_object()
+        new_value = request.data.get('value')
+        notes = request.data.get('notes', '')
+
+        if new_value is None:
+            return Response({'error': 'value is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update current value
+        portfolio.current_value = new_value
+        portfolio.save()
+
+        # Create or update snapshot for current month
+        now = timezone.now()
+        snapshot, created = PortfolioSnapshot.objects.update_or_create(
+            portfolio=portfolio,
+            year=now.year,
+            month=now.month,
+            defaults={'value': new_value, 'notes': notes}
+        )
+
+        return Response({
+            'message': 'Value updated successfully',
+            'portfolio': PortfolioSerializer(portfolio).data,
+            'snapshot': PortfolioSnapshotSerializer(snapshot).data
+        })
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Get summary of all portfolios grouped by type."""
+        portfolios = self.get_queryset()
+
+        # Group by type
+        investments = portfolios.filter(portfolio_type__in=['isa', 'jisa', 'pension', 'gia'])
+        savings = portfolios.filter(portfolio_type__in=['savings', 'emergency'])
+
+        total_investments = sum(p.current_value for p in investments)
+        total_savings = sum(p.current_value for p in savings)
+        total_net_worth = total_investments + total_savings
+
+        return Response({
+            'total_net_worth': total_net_worth,
+            'total_investments': total_investments,
+            'total_savings': total_savings,
+            'investments': PortfolioSerializer(investments, many=True).data,
+            'savings': PortfolioSerializer(savings, many=True).data,
+        })
+
+
+class PortfolioSnapshotViewSet(viewsets.ModelViewSet):
+    serializer_class = PortfolioSnapshotSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return PortfolioSnapshot.objects.filter(portfolio__user=self.request.user)
+
+    def perform_create(self, serializer):
+        portfolio_id = self.request.data.get('portfolio')
+        portfolio = Portfolio.objects.get(id=portfolio_id, user=self.request.user)
+        serializer.save(portfolio=portfolio)
 
 
 @api_view(['GET'])

@@ -1,33 +1,182 @@
 import { useEffect, useState } from 'react';
 import { financeApi } from '../api/client';
-import type { Investment } from '../types';
 import { formatCurrency, formatPercent } from '../utils/format';
-import { Plus, X, TrendingUp, TrendingDown, Edit2 } from 'lucide-react';
+import {
+  Plus,
+  X,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  Leaf,
+  PiggyBank,
+  Briefcase,
+  Shield,
+  Wallet,
+  Edit2,
+  ChevronRight,
+} from 'lucide-react';
 
-const INVESTMENT_TYPES = [
-  { value: 'stock', label: 'Stock' },
-  { value: 'etf', label: 'ETF' },
-  { value: 'mutual_fund', label: 'Mutual Fund' },
-  { value: 'bond', label: 'Bond' },
-  { value: 'crypto', label: 'Cryptocurrency' },
-  { value: 'real_estate', label: 'Real Estate' },
-  { value: 'other', label: 'Other' },
+interface Portfolio {
+  id: number;
+  name: string;
+  portfolio_type: string;
+  portfolio_type_display: string;
+  risk_level: string;
+  risk_level_display: string;
+  provider: string;
+  owner_name: string;
+  initial_value: number;
+  start_date: string;
+  current_value: number;
+  year_start_value: number;
+  total_gain_loss: number;
+  total_gain_loss_percent: number;
+  ytd_gain_loss: number;
+  ytd_gain_loss_percent: number;
+  notes: string;
+  is_active: boolean;
+}
+
+interface PortfolioSummary {
+  total_net_worth: number;
+  total_investments: number;
+  total_savings: number;
+  investments: Portfolio[];
+  savings: Portfolio[];
+}
+
+const PORTFOLIO_TYPES = [
+  { value: 'isa', label: 'ISA', icon: Briefcase },
+  { value: 'jisa', label: 'Junior ISA', icon: Leaf },
+  { value: 'pension', label: 'Pension', icon: Shield },
+  { value: 'gia', label: 'General Investment', icon: TrendingUp },
+  { value: 'savings', label: 'Savings Account', icon: PiggyBank },
+  { value: 'emergency', label: 'Emergency Fund', icon: Shield },
+  { value: 'other', label: 'Other', icon: Wallet },
 ];
 
+const RISK_LEVELS = [
+  { value: '1', label: 'Level 1/5' },
+  { value: '2', label: 'Level 2/5' },
+  { value: '3', label: 'Level 3/5' },
+  { value: '4', label: 'Level 4/5' },
+  { value: '5', label: 'Level 5/5' },
+  { value: 'none', label: 'N/A' },
+];
+
+function PortfolioCard({
+  portfolio,
+  onEdit,
+  onUpdateValue,
+}: {
+  portfolio: Portfolio;
+  onEdit: () => void;
+  onUpdateValue: () => void;
+}) {
+  const isInvestment = ['isa', 'jisa', 'pension', 'gia'].includes(portfolio.portfolio_type);
+  const startDate = new Date(portfolio.start_date);
+  const startMonthYear = startDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+
+  const typeConfig = PORTFOLIO_TYPES.find((t) => t.value === portfolio.portfolio_type);
+  const Icon = typeConfig?.icon || Wallet;
+
+  return (
+    <div className="bg-gray-900 rounded-xl p-5 text-white relative group">
+      {/* Type and Risk Level */}
+      <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
+        <span className="uppercase">{portfolio.portfolio_type_display}</span>
+        {portfolio.risk_level !== 'none' && (
+          <>
+            <span>-</span>
+            <span>{portfolio.risk_level_display}</span>
+          </>
+        )}
+      </div>
+
+      {/* Name */}
+      <div className="flex items-start justify-between">
+        <h3 className="text-xl font-semibold mb-3">{portfolio.name}</h3>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onUpdateValue}
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            title="Update value"
+          >
+            <Calendar size={20} />
+          </button>
+          {portfolio.portfolio_type === 'jisa' && (
+            <Leaf size={20} className="text-green-400" />
+          )}
+        </div>
+      </div>
+
+      {/* Current Value */}
+      <p className="text-3xl font-bold mb-4">{formatCurrency(portfolio.current_value)}</p>
+
+      {/* Performance Stats */}
+      {isInvestment ? (
+        <div className="flex items-center gap-6 text-sm">
+          <div>
+            <span className="text-gray-400">Since {startMonthYear}</span>
+            <span
+              className={`ml-2 font-medium ${
+                portfolio.total_gain_loss_percent >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}
+            >
+              {portfolio.total_gain_loss_percent >= 0 ? '↑' : '↓'}{' '}
+              {Math.abs(portfolio.total_gain_loss_percent).toFixed(2)}%
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-400">This year</span>
+            <span
+              className={`ml-2 font-medium ${
+                portfolio.ytd_gain_loss_percent >= 0 ? 'text-green-400' : 'text-red-400'
+              }`}
+            >
+              {portfolio.ytd_gain_loss_percent >= 0 ? '↑' : '↓'}{' '}
+              {Math.abs(portfolio.ytd_gain_loss_percent).toFixed(2)}%
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="text-sm text-gray-400">
+          {portfolio.owner_name && <span>{portfolio.owner_name}'s account</span>}
+          {portfolio.provider && <span className="ml-2">• {portfolio.provider}</span>}
+        </div>
+      )}
+
+      {/* Edit button (shows on hover) */}
+      <button
+        onClick={onEdit}
+        className="absolute top-3 right-3 p-2 text-gray-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <Edit2 size={16} />
+      </button>
+    </div>
+  );
+}
+
 export default function Investments() {
-  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingPortfolio, setEditingPortfolio] = useState<Portfolio | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio | null>(null);
+  const [newValue, setNewValue] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
-    symbol: '',
-    type: 'stock',
-    quantity: '',
-    purchase_price: '',
-    current_price: '',
-    purchase_date: new Date().toISOString().split('T')[0],
+    portfolio_type: 'isa',
+    risk_level: 'none',
+    provider: '',
+    owner_name: '',
+    initial_value: '',
+    start_date: new Date().toISOString().split('T')[0],
+    current_value: '',
+    year_start_value: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -36,11 +185,10 @@ export default function Investments() {
 
   const loadData = async () => {
     try {
-      const res = await financeApi.getInvestments();
-      // Handle paginated response
-      setInvestments(res.data.results || res.data);
+      const res = await financeApi.getPortfolioSummary();
+      setSummary(res.data);
     } catch (error) {
-      console.error('Error loading investments:', error);
+      console.error('Error loading portfolios:', error);
     } finally {
       setLoading(false);
     }
@@ -49,72 +197,97 @@ export default function Investments() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingId) {
-        await financeApi.updateInvestment(editingId, {
-          current_price: parseFloat(formData.current_price) || undefined,
+      if (editingPortfolio) {
+        await financeApi.updatePortfolio(editingPortfolio.id, {
+          name: formData.name,
+          current_value: parseFloat(formData.current_value),
+          year_start_value: parseFloat(formData.year_start_value) || undefined,
+          notes: formData.notes,
         });
       } else {
-        await financeApi.createInvestment({
+        await financeApi.createPortfolio({
           name: formData.name,
-          symbol: formData.symbol,
-          type: formData.type,
-          quantity: parseFloat(formData.quantity),
-          purchase_price: parseFloat(formData.purchase_price),
-          current_price: formData.current_price ? parseFloat(formData.current_price) : undefined,
-          purchase_date: formData.purchase_date,
+          portfolio_type: formData.portfolio_type,
+          risk_level: formData.risk_level,
+          provider: formData.provider,
+          owner_name: formData.owner_name,
+          initial_value: parseFloat(formData.initial_value),
+          start_date: formData.start_date,
+          current_value: parseFloat(formData.current_value) || parseFloat(formData.initial_value),
+          year_start_value: parseFloat(formData.year_start_value) || undefined,
+          notes: formData.notes,
         });
       }
       closeModal();
       loadData();
     } catch (error) {
-      console.error('Error saving investment:', error);
+      console.error('Error saving portfolio:', error);
+    }
+  };
+
+  const handleUpdateValue = async () => {
+    if (!selectedPortfolio || !newValue) return;
+    try {
+      await financeApi.updatePortfolioValue(selectedPortfolio.id, parseFloat(newValue));
+      setShowUpdateModal(false);
+      setSelectedPortfolio(null);
+      setNewValue('');
+      loadData();
+    } catch (error) {
+      console.error('Error updating value:', error);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this investment?')) {
+    if (confirm('Are you sure you want to delete this portfolio?')) {
       try {
-        await financeApi.deleteInvestment(id);
+        await financeApi.deletePortfolio(id);
         loadData();
       } catch (error) {
-        console.error('Error deleting investment:', error);
+        console.error('Error deleting portfolio:', error);
       }
     }
   };
 
-  const openEditModal = (investment: Investment) => {
-    setEditingId(investment.id);
+  const openEditModal = (portfolio: Portfolio) => {
+    setEditingPortfolio(portfolio);
     setFormData({
-      name: investment.name,
-      symbol: investment.symbol,
-      type: investment.type,
-      quantity: String(investment.quantity),
-      purchase_price: String(investment.purchase_price),
-      current_price: investment.current_price ? String(investment.current_price) : '',
-      purchase_date: investment.purchase_date,
+      name: portfolio.name,
+      portfolio_type: portfolio.portfolio_type,
+      risk_level: portfolio.risk_level,
+      provider: portfolio.provider,
+      owner_name: portfolio.owner_name,
+      initial_value: String(portfolio.initial_value),
+      start_date: portfolio.start_date,
+      current_value: String(portfolio.current_value),
+      year_start_value: String(portfolio.year_start_value),
+      notes: portfolio.notes,
     });
     setShowModal(true);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingId(null);
-    setFormData({
-      name: '',
-      symbol: '',
-      type: 'stock',
-      quantity: '',
-      purchase_price: '',
-      current_price: '',
-      purchase_date: new Date().toISOString().split('T')[0],
-    });
+  const openUpdateModal = (portfolio: Portfolio) => {
+    setSelectedPortfolio(portfolio);
+    setNewValue(String(portfolio.current_value));
+    setShowUpdateModal(true);
   };
 
-  // Calculate totals
-  const totalInvested = investments.reduce((sum, inv) => sum + Number(inv.total_invested), 0);
-  const totalValue = investments.reduce((sum, inv) => sum + Number(inv.current_value), 0);
-  const totalGainLoss = totalValue - totalInvested;
-  const totalGainLossPercent = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingPortfolio(null);
+    setFormData({
+      name: '',
+      portfolio_type: 'isa',
+      risk_level: 'none',
+      provider: '',
+      owner_name: '',
+      initial_value: '',
+      start_date: new Date().toISOString().split('T')[0],
+      current_value: '',
+      year_start_value: '',
+      notes: '',
+    });
+  };
 
   if (loading) {
     return (
@@ -125,112 +298,83 @@ export default function Investments() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Investments</h1>
-          <p className="text-gray-600">Track your investment portfolio</p>
+          <h1 className="text-2xl font-bold text-gray-900">Investments & Savings</h1>
+          <p className="text-gray-600">Track your portfolios and savings accounts</p>
         </div>
         <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
           <Plus size={20} />
-          Add Investment
+          Add Portfolio
         </button>
       </div>
 
-      {/* Portfolio Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="card">
-          <p className="text-sm text-gray-600">Total Invested</p>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalInvested)}</p>
-        </div>
-        <div className="card">
-          <p className="text-sm text-gray-600">Current Value</p>
-          <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalValue)}</p>
-        </div>
-        <div className="card">
-          <p className="text-sm text-gray-600">Total Return</p>
-          <div className="flex items-center gap-2">
-            <p className={`text-2xl font-bold ${totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(totalGainLoss)}
-            </p>
-            <span className={`text-sm ${totalGainLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ({formatPercent(totalGainLossPercent)})
-            </span>
+      {/* Net Worth Summary */}
+      {summary && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="card bg-gradient-to-br from-primary-500 to-primary-700 text-white">
+            <p className="text-sm opacity-80">Total Net Worth</p>
+            <p className="text-3xl font-bold">{formatCurrency(summary.total_net_worth)}</p>
+          </div>
+          <div className="card">
+            <p className="text-sm text-gray-600">Total Investments</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.total_investments)}</p>
+          </div>
+          <div className="card">
+            <p className="text-sm text-gray-600">Total Savings</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.total_savings)}</p>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Investments List */}
-      {investments.length > 0 ? (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Investment</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Quantity</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Avg Cost</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Current</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Value</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Return</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {investments.map((inv) => (
-                  <tr key={inv.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{inv.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {inv.symbol && `${inv.symbol} • `}
-                          {INVESTMENT_TYPES.find((t) => t.value === inv.type)?.label}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-right">{inv.quantity}</td>
-                    <td className="py-4 px-4 text-right">{formatCurrency(inv.purchase_price)}</td>
-                    <td className="py-4 px-4 text-right">
-                      {inv.current_price ? formatCurrency(inv.current_price) : '-'}
-                    </td>
-                    <td className="py-4 px-4 text-right font-medium">
-                      {formatCurrency(Number(inv.current_value))}
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className={`flex items-center justify-end gap-1 ${
-                        Number(inv.gain_loss) >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {Number(inv.gain_loss) >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                        <span>{formatPercent(Number(inv.gain_loss_percent))}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEditModal(inv)}
-                          className="p-1 text-gray-400 hover:text-primary-600"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(inv.id)}
-                          className="p-1 text-gray-400 hover:text-red-500"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Investments Section */}
+      {summary && summary.investments.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Briefcase className="text-primary-600" size={24} />
+            <h2 className="text-xl font-semibold text-gray-900">My Investments</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {summary.investments.map((portfolio) => (
+              <PortfolioCard
+                key={portfolio.id}
+                portfolio={portfolio}
+                onEdit={() => openEditModal(portfolio)}
+                onUpdateValue={() => openUpdateModal(portfolio)}
+              />
+            ))}
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* Savings Section */}
+      {summary && summary.savings.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <PiggyBank className="text-green-600" size={24} />
+            <h2 className="text-xl font-semibold text-gray-900">Savings & Emergency Fund</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {summary.savings.map((portfolio) => (
+              <PortfolioCard
+                key={portfolio.id}
+                portfolio={portfolio}
+                onEdit={() => openEditModal(portfolio)}
+                onUpdateValue={() => openUpdateModal(portfolio)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {summary && summary.investments.length === 0 && summary.savings.length === 0 && (
         <div className="card text-center py-12">
-          <p className="text-gray-500 mb-4">No investments tracked yet</p>
+          <Briefcase size={48} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-500 mb-4">No portfolios tracked yet</p>
           <button onClick={() => setShowModal(true)} className="btn-primary">
-            Add your first investment
+            Add your first portfolio
           </button>
         </div>
       )}
@@ -241,86 +385,102 @@ export default function Investments() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold">{editingId ? 'Update Investment' : 'Add Investment'}</h2>
+                <h2 className="text-xl font-bold">
+                  {editingPortfolio ? 'Edit Portfolio' : 'Add Portfolio'}
+                </h2>
                 <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-lg">
                   <X size={20} />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {!editingId && (
+                <div>
+                  <label className="label">Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                    className="input"
+                    placeholder="e.g., Portfolio 1 - ISA"
+                    required
+                  />
+                </div>
+
+                {!editingPortfolio && (
                   <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">Type</label>
+                        <select
+                          value={formData.portfolio_type}
+                          onChange={(e) => setFormData((p) => ({ ...p, portfolio_type: e.target.value }))}
+                          className="input"
+                        >
+                          {PORTFOLIO_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="label">Risk Level</label>
+                        <select
+                          value={formData.risk_level}
+                          onChange={(e) => setFormData((p) => ({ ...p, risk_level: e.target.value }))}
+                          className="input"
+                        >
+                          {RISK_LEVELS.map((r) => (
+                            <option key={r.value} value={r.value}>
+                              {r.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="label">Name</label>
+                      <label className="label">Provider (optional)</label>
                       <input
                         type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                        value={formData.provider}
+                        onChange={(e) => setFormData((p) => ({ ...p, provider: e.target.value }))}
                         className="input"
-                        placeholder="e.g., Apple Inc."
+                        placeholder="e.g., Nutmeg, Vanguard, Lloyds"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label">Owner Name (optional)</label>
+                      <input
+                        type="text"
+                        value={formData.owner_name}
+                        onChange={(e) => setFormData((p) => ({ ...p, owner_name: e.target.value }))}
+                        className="input"
+                        placeholder="e.g., Nishant, Kiaan, Krati"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label">Start Date</label>
+                      <input
+                        type="date"
+                        value={formData.start_date}
+                        onChange={(e) => setFormData((p) => ({ ...p, start_date: e.target.value }))}
+                        className="input"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="label">Symbol (optional)</label>
-                      <input
-                        type="text"
-                        value={formData.symbol}
-                        onChange={(e) => setFormData((p) => ({ ...p, symbol: e.target.value.toUpperCase() }))}
-                        className="input"
-                        placeholder="e.g., AAPL"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label">Type</label>
-                      <select
-                        value={formData.type}
-                        onChange={(e) => setFormData((p) => ({ ...p, type: e.target.value }))}
-                        className="input"
-                      >
-                        {INVESTMENT_TYPES.map((t) => (
-                          <option key={t.value} value={t.value}>
-                            {t.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="label">Quantity</label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={formData.quantity}
-                        onChange={(e) => setFormData((p) => ({ ...p, quantity: e.target.value }))}
-                        className="input"
-                        placeholder="0"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label">Purchase Price (per unit)</label>
+                      <label className="label">Initial Value (£)</label>
                       <input
                         type="number"
                         step="0.01"
-                        value={formData.purchase_price}
-                        onChange={(e) => setFormData((p) => ({ ...p, purchase_price: e.target.value }))}
+                        value={formData.initial_value}
+                        onChange={(e) => setFormData((p) => ({ ...p, initial_value: e.target.value }))}
                         className="input"
                         placeholder="0.00"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label">Purchase Date</label>
-                      <input
-                        type="date"
-                        value={formData.purchase_date}
-                        onChange={(e) => setFormData((p) => ({ ...p, purchase_date: e.target.value }))}
-                        className="input"
                         required
                       />
                     </div>
@@ -328,14 +488,37 @@ export default function Investments() {
                 )}
 
                 <div>
-                  <label className="label">Current Price (per unit)</label>
+                  <label className="label">Current Value (£)</label>
                   <input
                     type="number"
                     step="0.01"
-                    value={formData.current_price}
-                    onChange={(e) => setFormData((p) => ({ ...p, current_price: e.target.value }))}
+                    value={formData.current_value}
+                    onChange={(e) => setFormData((p) => ({ ...p, current_value: e.target.value }))}
                     className="input"
-                    placeholder="Leave empty to use purchase price"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Year Start Value (£) - for YTD calculation</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.year_start_value}
+                    onChange={(e) => setFormData((p) => ({ ...p, year_start_value: e.target.value }))}
+                    className="input"
+                    placeholder="Value at Jan 1st"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Notes (optional)</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData((p) => ({ ...p, notes: e.target.value }))}
+                    className="input"
+                    rows={2}
+                    placeholder="Any additional notes..."
                   />
                 </div>
 
@@ -344,10 +527,74 @@ export default function Investments() {
                     Cancel
                   </button>
                   <button type="submit" className="flex-1 btn-primary">
-                    {editingId ? 'Update' : 'Add Investment'}
+                    {editingPortfolio ? 'Update' : 'Add Portfolio'}
                   </button>
                 </div>
+
+                {editingPortfolio && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDelete(editingPortfolio.id);
+                      closeModal();
+                    }}
+                    className="w-full text-red-600 hover:text-red-700 text-sm mt-2"
+                  >
+                    Delete this portfolio
+                  </button>
+                )}
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Update Value Modal */}
+      {showUpdateModal && selectedPortfolio && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">Update Value</h2>
+                <button
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    setSelectedPortfolio(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <p className="text-gray-600 mb-4">{selectedPortfolio.name}</p>
+
+              <div className="mb-6">
+                <label className="label">New Value (£)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={newValue}
+                  onChange={(e) => setNewValue(e.target.value)}
+                  className="input text-2xl font-bold text-center"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    setSelectedPortfolio(null);
+                  }}
+                  className="flex-1 btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button onClick={handleUpdateValue} className="flex-1 btn-primary">
+                  Update
+                </button>
+              </div>
             </div>
           </div>
         </div>

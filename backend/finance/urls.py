@@ -11,6 +11,8 @@ from .views import (
     RecurringTransactionViewSet,
     HouseBudgetViewSet,
     BudgetLineItemViewSet,
+    PortfolioViewSet,
+    PortfolioSnapshotViewSet,
     dashboard,
     monthly_summary,
     expense_by_category,
@@ -33,6 +35,8 @@ router.register('monthly-notes', MonthlyNoteViewSet, basename='monthly-note')
 router.register('recurring-transactions', RecurringTransactionViewSet, basename='recurring-transaction')
 router.register('house-budgets', HouseBudgetViewSet, basename='house-budget')
 router.register('budget-line-items', BudgetLineItemViewSet, basename='budget-line-item')
+router.register('portfolios', PortfolioViewSet, basename='portfolio')
+router.register('portfolio-snapshots', PortfolioSnapshotViewSet, basename='portfolio-snapshot')
 
 urlpatterns = [
     path('dashboard/', dashboard, name='dashboard'),

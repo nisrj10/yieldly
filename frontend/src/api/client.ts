@@ -220,6 +220,43 @@ export const financeApi = {
     api.patch(`/investments/${id}/`, data),
   deleteInvestment: (id: number) => api.delete(`/investments/${id}/`),
 
+  // Portfolios
+  getPortfolios: () => api.get('/portfolios/'),
+  getPortfolioSummary: () => api.get('/portfolios/summary/'),
+  createPortfolio: (data: {
+    name: string;
+    portfolio_type: string;
+    risk_level?: string;
+    provider?: string;
+    owner_name?: string;
+    initial_value: number;
+    start_date: string;
+    current_value: number;
+    year_start_value?: number;
+    notes?: string;
+  }) => api.post('/portfolios/', data),
+  updatePortfolio: (id: number, data: Partial<{
+    name: string;
+    current_value: number;
+    year_start_value: number;
+    notes: string;
+    is_active: boolean;
+  }>) => api.patch(`/portfolios/${id}/`, data),
+  updatePortfolioValue: (id: number, value: number, notes?: string) =>
+    api.post(`/portfolios/${id}/update_value/`, { value, notes }),
+  deletePortfolio: (id: number) => api.delete(`/portfolios/${id}/`),
+
+  // Portfolio Snapshots
+  getPortfolioSnapshots: (portfolioId: number) =>
+    api.get('/portfolio-snapshots/', { params: { portfolio: portfolioId } }),
+  createPortfolioSnapshot: (data: {
+    portfolio: number;
+    year: number;
+    month: number;
+    value: number;
+    notes?: string;
+  }) => api.post('/portfolio-snapshots/', data),
+
   // Savings Goals
   getSavingsGoals: () => api.get('/savings-goals/'),
   createSavingsGoal: (data: {
