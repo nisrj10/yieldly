@@ -125,6 +125,10 @@ export const financeApi = {
   // Budget Overview
   getBudgetOverview: () => api.get('/budget-overview/'),
 
+  // Category Spending Breakdown
+  getCategorySpending: (months?: number) =>
+    api.get('/category-spending/', { params: { months } }),
+
   // Accounts
   getAccounts: () => api.get('/accounts/'),
   createAccount: (data: { name: string; type: string; balance: number; currency?: string }) =>

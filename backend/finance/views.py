@@ -483,6 +483,104 @@ class BudgetLineItemViewSet(viewsets.ModelViewSet):
         serializer.save(budget=budget)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def category_spending_breakdown(request):
+    """Get spending breakdown by smart categories (Groceries, Eating Out, etc.) for multiple months."""
+    user = request.user
+    months_count = int(request.query_params.get('months', 4))
+
+    # Category keywords
+    CATEGORIES = {
+        'Groceries': {
+            'keywords': ['tesco', 'sainsbury', 'asda', 'marks & spencer', 'm&s', 'aldi', 'lidl', 'co-op', 'costco', 'morrisons', 'waitrose'],
+            'exclude': ['petrol', 'fuel'],
+            'budget': 350,
+        },
+        'Eating Out': {
+            'keywords': ['starbucks', 'costa', 'mcdonald', 'burger', 'kfc', 'nando', 'pizza', 'domino', 'deliveroo', 'uber eats', 'just eat', 'restaurant', 'cafe', 'coffee', 'pub', 'grill', 'greggs', 'pret', 'subway', 'wagamama', 'gail', 'leon', 'itsu', 'bakery', 'kebab', 'frankie', 'benny', 'mowgli', 'zizzi', 'prezzo', 'ask italian'],
+            'exclude': ['village hotel', 'village gym'],
+            'budget': 150,
+        },
+        'Transport': {
+            'keywords': ['petrol', 'fuel', 'parking', 'train', 'bus', 'taxi', 'toll', 'car wash', 'national rail', 'trainline', 'tfl'],
+            'exclude': [],
+            'budget': 120,
+        },
+        'Health & Fitness': {
+            'keywords': ['pharmacy', 'boots', 'superdrug', 'dentist', 'doctor', 'hospital', 'gym', 'puregym', 'village gym', 'village hotel'],
+            'exclude': [],
+            'budget': 61,
+        },
+        'Shopping': {
+            'keywords': ['amazon', 'ebay', 'argos', 'john lewis', 'currys', 'next', 'primark', 'zara', 'h&m', 'asos', 'tk maxx'],
+            'exclude': ['amazon prime', 'prime video'],
+            'budget': 100,
+        },
+    }
+
+    now = timezone.now().date()
+    results = []
+
+    for i in range(months_count):
+        # Calculate month boundaries
+        if now.month - i <= 0:
+            year = now.year - 1
+            month = 12 + (now.month - i)
+        else:
+            year = now.year
+            month = now.month - i
+
+        month_start = date(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        month_end = date(year, month, last_day)
+
+        # Get all transactions for this month
+        transactions = Transaction.objects.filter(
+            user=user,
+            date__gte=month_start,
+            date__lte=month_end
+        )
+
+        month_data = {
+            'year': year,
+            'month': month,
+            'month_name': calendar.month_name[month],
+            'categories': {}
+        }
+
+        for cat_name, cat_config in CATEGORIES.items():
+            total = 0
+            count = 0
+
+            for t in transactions:
+                desc = t.description.lower() if t.description else ''
+                amt = abs(float(t.amount))
+
+                # Skip large amounts (likely salary/transfers)
+                if amt > 2000:
+                    continue
+
+                # Check if matches category keywords
+                matches = any(kw in desc for kw in cat_config['keywords'])
+                excluded = any(ex in desc for ex in cat_config['exclude'])
+
+                if matches and not excluded:
+                    total += amt
+                    count += 1
+
+            month_data['categories'][cat_name] = {
+                'total': round(total, 2),
+                'count': count,
+                'budget': cat_config['budget'],
+                'variance': round(cat_config['budget'] - total, 2),
+            }
+
+        results.append(month_data)
+
+    return Response(results)
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_default_house_budget(request):

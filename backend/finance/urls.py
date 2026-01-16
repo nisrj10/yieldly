@@ -18,6 +18,7 @@ from .views import (
     save_monthly_note,
     budget_overview,
     create_default_house_budget,
+    category_spending_breakdown,
 )
 
 router = DefaultRouter()
@@ -40,5 +41,6 @@ urlpatterns = [
     path('save-monthly-note/', save_monthly_note, name='save-monthly-note'),
     path('budget-overview/', budget_overview, name='budget-overview'),
     path('house-budget/create-default/', create_default_house_budget, name='create-default-house-budget'),
+    path('category-spending/', category_spending_breakdown, name='category-spending-breakdown'),
     path('', include(router.urls)),
 ]
