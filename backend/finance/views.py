@@ -6,7 +6,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta, date
 import calendar
-from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog
+from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog, CategoryExclusion
 from .serializers import (
     CategorySerializer,
     AccountSerializer,
@@ -19,6 +19,7 @@ from .serializers import (
     HouseBudgetSerializer,
     BudgetLineItemSerializer,
     BudgetChangeLogSerializer,
+    CategoryExclusionSerializer,
 )
 
 
@@ -607,6 +608,7 @@ def category_spending_breakdown(request):
     """Get spending breakdown by smart categories (Groceries, Eating Out, etc.) for multiple months."""
     user = request.user
     months_count = int(request.query_params.get('months', 4))
+    include_transactions = request.query_params.get('include_transactions', 'false').lower() == 'true'
 
     # Category keywords
     CATEGORIES = {
@@ -636,6 +638,11 @@ def category_spending_breakdown(request):
             'budget': 100,
         },
     }
+
+    # Get all user exclusions
+    user_exclusions = set(
+        CategoryExclusion.objects.filter(user=user).values_list('transaction_id', 'category')
+    )
 
     now = timezone.now().date()
     results = []
@@ -668,6 +675,7 @@ def category_spending_breakdown(request):
         for cat_name, cat_config in CATEGORIES.items():
             total = 0
             count = 0
+            cat_transactions = []
 
             for t in transactions:
                 desc = t.description.lower() if t.description else ''
@@ -679,11 +687,24 @@ def category_spending_breakdown(request):
 
                 # Check if matches category keywords
                 matches = any(kw in desc for kw in cat_config['keywords'])
-                excluded = any(ex in desc for ex in cat_config['exclude'])
+                keyword_excluded = any(ex in desc for ex in cat_config['exclude'])
 
-                if matches and not excluded:
-                    total += amt
-                    count += 1
+                if matches and not keyword_excluded:
+                    # Check if user has manually excluded this transaction
+                    is_user_excluded = (t.id, cat_name) in user_exclusions
+
+                    if include_transactions:
+                        cat_transactions.append({
+                            'id': t.id,
+                            'description': t.description,
+                            'amount': amt,
+                            'date': t.date.isoformat(),
+                            'excluded': is_user_excluded,
+                        })
+
+                    if not is_user_excluded:
+                        total += amt
+                        count += 1
 
             month_data['categories'][cat_name] = {
                 'total': round(total, 2),
@@ -692,9 +713,44 @@ def category_spending_breakdown(request):
                 'variance': round(cat_config['budget'] - total, 2),
             }
 
+            if include_transactions:
+                month_data['categories'][cat_name]['transactions'] = cat_transactions
+
         results.append(month_data)
 
     return Response(results)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_category_exclusion(request):
+    """Toggle exclusion of a transaction from a smart category."""
+    user = request.user
+    transaction_id = request.data.get('transaction_id')
+    category = request.data.get('category')
+
+    if not transaction_id or not category:
+        return Response({'error': 'transaction_id and category are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verify transaction belongs to user
+    try:
+        transaction = Transaction.objects.get(id=transaction_id, user=user)
+    except Transaction.DoesNotExist:
+        return Response({'error': 'Transaction not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Toggle exclusion
+    exclusion, created = CategoryExclusion.objects.get_or_create(
+        user=user,
+        transaction=transaction,
+        category=category,
+    )
+
+    if not created:
+        # Already existed, so delete it (toggle off)
+        exclusion.delete()
+        return Response({'excluded': False, 'message': f'Transaction included in {category}'})
+
+    return Response({'excluded': True, 'message': f'Transaction excluded from {category}'})
 
 
 @api_view(['POST'])

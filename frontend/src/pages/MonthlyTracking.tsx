@@ -13,6 +13,9 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle,
+  X,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   BarChart,
@@ -26,11 +29,20 @@ import {
   Cell,
 } from 'recharts';
 
+interface TransactionData {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+  excluded: boolean;
+}
+
 interface CategoryData {
   total: number;
   count: number;
   budget: number;
   variance: number;
+  transactions?: TransactionData[];
 }
 
 interface MonthData {
@@ -58,6 +70,9 @@ export default function MonthlyTracking() {
   const [data, setData] = useState<MonthData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [detailData, setDetailData] = useState<MonthData | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -65,12 +80,47 @@ export default function MonthlyTracking() {
 
   const loadData = async () => {
     try {
-      const res = await financeApi.getCategorySpending(24);
+      const res = await financeApi.getCategorySpending(24, false);
       setData(res.data);
     } catch (error) {
       console.error('Error loading category spending:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDetailData = async (monthIndex: number) => {
+    setLoadingDetail(true);
+    try {
+      // Load data for just this month with transactions
+      const month = data[monthIndex];
+      const res = await financeApi.getCategorySpending(24, true);
+      const monthData = res.data.find(
+        (m: MonthData) => m.year === month.year && m.month === month.month
+      );
+      setDetailData(monthData || null);
+    } catch (error) {
+      console.error('Error loading transaction details:', error);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleCategoryClick = async (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    if (!detailData || detailData.year !== data[selectedMonthIndex].year || detailData.month !== data[selectedMonthIndex].month) {
+      await loadDetailData(selectedMonthIndex);
+    }
+  };
+
+  const handleToggleExclusion = async (transactionId: number, category: string) => {
+    try {
+      await financeApi.toggleCategoryExclusion(transactionId, category);
+      // Reload both summary and detail data
+      await loadData();
+      await loadDetailData(selectedMonthIndex);
+    } catch (error) {
+      console.error('Error toggling exclusion:', error);
     }
   };
 
@@ -92,6 +142,11 @@ export default function MonthlyTracking() {
   const monthBudget = currentMonth
     ? Object.values(currentMonth.categories).reduce((sum, cat) => sum + cat.budget, 0)
     : 0;
+
+  // Get transactions for selected category
+  const selectedTransactions = selectedCategory && detailData
+    ? detailData.categories[selectedCategory as keyof typeof detailData.categories]?.transactions || []
+    : [];
 
   if (loading) {
     return (
@@ -161,7 +216,11 @@ export default function MonthlyTracking() {
             const isOverBudget = cat.total > cat.budget;
 
             return (
-              <div key={name} className="card">
+              <div
+                key={name}
+                className="card cursor-pointer hover:shadow-md hover:border-gray-300 transition-all"
+                onClick={() => handleCategoryClick(name)}
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg ${config.bgColor} flex items-center justify-center`}>
@@ -172,11 +231,14 @@ export default function MonthlyTracking() {
                       <p className="text-xs text-gray-500">{cat.count} transactions</p>
                     </div>
                   </div>
-                  {isOverBudget ? (
-                    <AlertCircle className="text-red-500" size={20} />
-                  ) : (
-                    <CheckCircle className="text-green-500" size={20} />
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Click to view</span>
+                    {isOverBudget ? (
+                      <AlertCircle className="text-red-500" size={20} />
+                    ) : (
+                      <CheckCircle className="text-green-500" size={20} />
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -285,6 +347,114 @@ export default function MonthlyTracking() {
           </table>
         </div>
       </div>
+
+      {/* Transaction Details Modal */}
+      {selectedCategory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const config = CATEGORY_CONFIG[selectedCategory as keyof typeof CATEGORY_CONFIG];
+                    const Icon = config.icon;
+                    return (
+                      <>
+                        <div className={`w-10 h-10 rounded-lg ${config.bgColor} flex items-center justify-center`}>
+                          <Icon className={config.textColor} size={20} />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-gray-900">{selectedCategory}</h2>
+                          <p className="text-sm text-gray-500">
+                            {currentMonth?.month_name} {currentMonth?.year}
+                          </p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingDetail ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                </div>
+              ) : selectedTransactions.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p>No transactions found for this category</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-gray-500 px-3 py-2">
+                    <span>Click the eye icon to exclude/include a transaction</span>
+                    <span>{selectedTransactions.filter(t => !t.excluded).length} included</span>
+                  </div>
+                  {selectedTransactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                        transaction.excluded
+                          ? 'bg-gray-50 border-gray-200 opacity-60'
+                          : 'bg-white border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium truncate ${transaction.excluded ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                          {transaction.description}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(transaction.date).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`font-semibold ${transaction.excluded ? 'text-gray-400' : 'text-gray-900'}`}>
+                          {formatCurrency(transaction.amount)}
+                        </span>
+                        <button
+                          onClick={() => handleToggleExclusion(transaction.id, selectedCategory)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            transaction.excluded
+                              ? 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                              : 'text-green-600 hover:text-red-600 hover:bg-red-50'
+                          }`}
+                          title={transaction.excluded ? 'Include in calculation' : 'Exclude from calculation'}
+                        >
+                          {transaction.excluded ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {detailData && selectedCategory && (
+              <div className="p-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-700">Total (included only)</span>
+                  <span className="text-xl font-bold text-gray-900">
+                    {formatCurrency(
+                      detailData.categories[selectedCategory as keyof typeof detailData.categories]?.total || 0
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -376,6 +376,39 @@ class BudgetChangeLog(models.Model):
         return f"{self.change_type}: Budget - {self.field_name}"
 
 
+class CategoryExclusion(models.Model):
+    """Track transactions excluded from smart category spending calculations."""
+    SMART_CATEGORIES = [
+        ('Groceries', 'Groceries'),
+        ('Eating Out', 'Eating Out'),
+        ('Transport', 'Transport'),
+        ('Health & Fitness', 'Health & Fitness'),
+        ('Shopping', 'Shopping'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='category_exclusions'
+    )
+    transaction = models.ForeignKey(
+        'Transaction',
+        on_delete=models.CASCADE,
+        related_name='category_exclusions'
+    )
+    category = models.CharField(max_length=50, choices=SMART_CATEGORIES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'transaction', 'category']
+        indexes = [
+            models.Index(fields=['user', 'category']),
+        ]
+
+    def __str__(self):
+        return f"Exclude {self.transaction.description} from {self.category}"
+
+
 class RecurringTransaction(models.Model):
     """Recurring transactions (bills, subscriptions, salary)."""
     FREQUENCY_CHOICES = [

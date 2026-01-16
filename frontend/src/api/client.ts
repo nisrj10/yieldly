@@ -126,8 +126,10 @@ export const financeApi = {
   getBudgetOverview: () => api.get('/budget-overview/'),
 
   // Category Spending Breakdown
-  getCategorySpending: (months?: number) =>
-    api.get('/category-spending/', { params: { months } }),
+  getCategorySpending: (months?: number, includeTransactions?: boolean) =>
+    api.get('/category-spending/', { params: { months, include_transactions: includeTransactions } }),
+  toggleCategoryExclusion: (transactionId: number, category: string) =>
+    api.post('/category-exclusion/toggle/', { transaction_id: transactionId, category }),
 
   // Accounts
   getAccounts: () => api.get('/accounts/'),

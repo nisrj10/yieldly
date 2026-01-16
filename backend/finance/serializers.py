@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog
+from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog, CategoryExclusion
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -266,3 +266,14 @@ class BudgetChangeLogSerializer(serializers.ModelSerializer):
 
     def get_formatted_date(self, obj):
         return obj.created_at.strftime('%d %b %Y, %H:%M')
+
+
+class CategoryExclusionSerializer(serializers.ModelSerializer):
+    transaction_description = serializers.CharField(source='transaction.description', read_only=True)
+    transaction_amount = serializers.DecimalField(source='transaction.amount', max_digits=12, decimal_places=2, read_only=True)
+    transaction_date = serializers.DateField(source='transaction.date', read_only=True)
+
+    class Meta:
+        model = CategoryExclusion
+        fields = ['id', 'transaction', 'transaction_description', 'transaction_amount', 'transaction_date', 'category', 'created_at']
+        read_only_fields = ['id', 'created_at']

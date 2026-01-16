@@ -19,6 +19,7 @@ from .views import (
     budget_overview,
     create_default_house_budget,
     category_spending_breakdown,
+    toggle_category_exclusion,
 )
 
 router = DefaultRouter()
@@ -42,5 +43,6 @@ urlpatterns = [
     path('budget-overview/', budget_overview, name='budget-overview'),
     path('house-budget/create-default/', create_default_house_budget, name='create-default-house-budget'),
     path('category-spending/', category_spending_breakdown, name='category-spending-breakdown'),
+    path('category-exclusion/toggle/', toggle_category_exclusion, name='toggle-category-exclusion'),
     path('', include(router.urls)),
 ]
