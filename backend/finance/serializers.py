@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem
+from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -248,3 +248,21 @@ class HouseBudgetSerializer(serializers.ModelSerializer):
     def get_remaining(self, obj):
         total_outgoing = sum(item.amount for item in obj.line_items.all())
         return float(obj.total_income) - float(total_outgoing)
+
+
+class BudgetChangeLogSerializer(serializers.ModelSerializer):
+    """Serializer for budget change history."""
+    change_type_display = serializers.CharField(source='get_change_type_display', read_only=True)
+    formatted_date = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BudgetChangeLog
+        fields = [
+            'id', 'budget', 'line_item_id', 'line_item_name',
+            'change_type', 'change_type_display', 'field_name',
+            'old_value', 'new_value', 'note', 'created_at', 'formatted_date'
+        ]
+        read_only_fields = ['id', 'created_at']
+
+    def get_formatted_date(self, obj):
+        return obj.created_at.strftime('%d %b %Y, %H:%M')

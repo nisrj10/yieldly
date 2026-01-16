@@ -6,7 +6,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta, date
 import calendar
-from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem
+from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog
 from .serializers import (
     CategorySerializer,
     AccountSerializer,
@@ -18,6 +18,7 @@ from .serializers import (
     RecurringTransactionSerializer,
     HouseBudgetSerializer,
     BudgetLineItemSerializer,
+    BudgetChangeLogSerializer,
 )
 
 
@@ -413,6 +414,21 @@ def budget_overview(request):
     })
 
 
+def log_budget_change(user, budget, change_type, field_name='', old_value='', new_value='', line_item=None, note=''):
+    """Helper function to log budget changes."""
+    BudgetChangeLog.objects.create(
+        user=user,
+        budget=budget,
+        line_item_id=line_item.id if line_item else None,
+        line_item_name=line_item.name if line_item else '',
+        change_type=change_type,
+        field_name=field_name,
+        old_value=str(old_value) if old_value else '',
+        new_value=str(new_value) if new_value else '',
+        note=note,
+    )
+
+
 class HouseBudgetViewSet(viewsets.ModelViewSet):
     serializer_class = HouseBudgetSerializer
     permission_classes = [IsAuthenticated]
@@ -421,7 +437,48 @@ class HouseBudgetViewSet(viewsets.ModelViewSet):
         return HouseBudget.objects.filter(user=self.request.user).prefetch_related('line_items')
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        budget = serializer.save(user=self.request.user)
+        log_budget_change(
+            user=self.request.user,
+            budget=budget,
+            change_type='create',
+            field_name='budget',
+            new_value=budget.name,
+            note='Budget created'
+        )
+
+    def perform_update(self, serializer):
+        # Track changes to income fields
+        budget = self.get_object()
+        old_values = {
+            'primary_salary': budget.primary_salary,
+            'secondary_income': budget.secondary_income,
+            'other_income': budget.other_income,
+            'partner_contribution': budget.partner_contribution,
+        }
+
+        updated_budget = serializer.save()
+
+        # Log changes for income fields
+        for field, old_val in old_values.items():
+            new_val = getattr(updated_budget, field)
+            if old_val != new_val:
+                log_budget_change(
+                    user=self.request.user,
+                    budget=updated_budget,
+                    change_type='update',
+                    field_name=field.replace('_', ' ').title(),
+                    old_value=f'£{old_val}',
+                    new_value=f'£{new_val}',
+                )
+
+    @action(detail=True, methods=['get'])
+    def history(self, request, pk=None):
+        """Get change history for this budget."""
+        budget = self.get_object()
+        logs = BudgetChangeLog.objects.filter(budget=budget)
+        serializer = BudgetChangeLogSerializer(logs, many=True)
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def add_item(self, request, pk=None):
@@ -429,7 +486,16 @@ class HouseBudgetViewSet(viewsets.ModelViewSet):
         budget = self.get_object()
         serializer = BudgetLineItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(budget=budget)
+        item = serializer.save(budget=budget)
+        log_budget_change(
+            user=request.user,
+            budget=budget,
+            change_type='create',
+            field_name='amount',
+            new_value=f'£{item.amount}',
+            line_item=item,
+            note=f'Added to {item.group}' if item.group else 'Added'
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
@@ -480,7 +546,59 @@ class BudgetLineItemViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         budget_id = self.request.data.get('budget')
         budget = HouseBudget.objects.get(id=budget_id, user=self.request.user)
-        serializer.save(budget=budget)
+        item = serializer.save(budget=budget)
+        log_budget_change(
+            user=self.request.user,
+            budget=budget,
+            change_type='create',
+            field_name='amount',
+            new_value=f'£{item.amount}',
+            line_item=item,
+            note=f'Added to {item.group}' if item.group else 'Added'
+        )
+
+    def perform_update(self, serializer):
+        item = self.get_object()
+        old_amount = item.amount
+        old_name = item.name
+
+        updated_item = serializer.save()
+
+        # Log amount changes
+        if old_amount != updated_item.amount:
+            log_budget_change(
+                user=self.request.user,
+                budget=updated_item.budget,
+                change_type='update',
+                field_name='amount',
+                old_value=f'£{old_amount}',
+                new_value=f'£{updated_item.amount}',
+                line_item=updated_item,
+            )
+
+        # Log name changes
+        if old_name != updated_item.name:
+            log_budget_change(
+                user=self.request.user,
+                budget=updated_item.budget,
+                change_type='update',
+                field_name='name',
+                old_value=old_name,
+                new_value=updated_item.name,
+                line_item=updated_item,
+            )
+
+    def perform_destroy(self, instance):
+        log_budget_change(
+            user=self.request.user,
+            budget=instance.budget,
+            change_type='delete',
+            field_name='amount',
+            old_value=f'£{instance.amount}',
+            line_item=instance,
+            note=f'Removed from {instance.group}' if instance.group else 'Removed'
+        )
+        instance.delete()
 
 
 @api_view(['GET'])

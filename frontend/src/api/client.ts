@@ -258,6 +258,7 @@ export const financeApi = {
   createDefaultHouseBudget: () => api.post('/house-budget/create-default/'),
   duplicateHouseBudget: (id: number, data: { month: number; year: number; name?: string }) =>
     api.post(`/house-budgets/${id}/duplicate/`, data),
+  getBudgetHistory: (id: number) => api.get(`/house-budgets/${id}/history/`),
 
   // Budget Line Items
   createBudgetLineItem: (data: {

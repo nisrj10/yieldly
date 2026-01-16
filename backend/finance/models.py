@@ -336,6 +336,46 @@ class BudgetLineItem(models.Model):
         return f"{self.name}: £{self.amount}"
 
 
+class BudgetChangeLog(models.Model):
+    """Track changes to house budget and line items over time."""
+    CHANGE_TYPES = [
+        ('create', 'Created'),
+        ('update', 'Updated'),
+        ('delete', 'Deleted'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='budget_change_logs'
+    )
+    budget = models.ForeignKey(
+        HouseBudget,
+        on_delete=models.CASCADE,
+        related_name='change_logs'
+    )
+    line_item_id = models.IntegerField(null=True, blank=True)  # Store ID for reference even if deleted
+    line_item_name = models.CharField(max_length=100, blank=True)  # Store name for display
+    change_type = models.CharField(max_length=10, choices=CHANGE_TYPES)
+    field_name = models.CharField(max_length=50, blank=True)  # e.g., 'amount', 'name', 'primary_salary'
+    old_value = models.CharField(max_length=255, blank=True)
+    new_value = models.CharField(max_length=255, blank=True)
+    note = models.TextField(blank=True)  # Optional explanation
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['budget', '-created_at']),
+            models.Index(fields=['user', '-created_at']),
+        ]
+
+    def __str__(self):
+        if self.line_item_name:
+            return f"{self.change_type}: {self.line_item_name} - {self.field_name}"
+        return f"{self.change_type}: Budget - {self.field_name}"
+
+
 class RecurringTransaction(models.Model):
     """Recurring transactions (bills, subscriptions, salary)."""
     FREQUENCY_CHOICES = [

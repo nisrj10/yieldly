@@ -21,6 +21,10 @@ import {
   Wallet,
   TrendingUp,
   ArrowRight,
+  History,
+  TrendingDown,
+  CirclePlus,
+  CircleMinus,
 } from 'lucide-react';
 
 interface BudgetLineItem {
@@ -58,6 +62,21 @@ interface HouseBudget {
   remaining: number;
 }
 
+interface BudgetChangeLog {
+  id: number;
+  budget: number;
+  line_item_id: number | null;
+  line_item_name: string;
+  change_type: 'create' | 'update' | 'delete';
+  change_type_display: string;
+  field_name: string;
+  old_value: string;
+  new_value: string;
+  note: string;
+  created_at: string;
+  formatted_date: string;
+}
+
 const groupIcons: Record<string, React.ReactNode> = {
   Housing: <Home size={18} />,
   Transport: <Car size={18} />,
@@ -90,7 +109,9 @@ export default function HouseBudget() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingIncome, setEditingIncome] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Housing', 'Savings']));
-  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'split'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'split' | 'history'>('overview');
+  const [history, setHistory] = useState<BudgetChangeLog[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const [newItem, setNewItem] = useState({
     name: '',
@@ -105,6 +126,25 @@ export default function HouseBudget() {
   useEffect(() => {
     loadBudget();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'history' && budget && history.length === 0) {
+      loadHistory();
+    }
+  }, [activeTab, budget]);
+
+  const loadHistory = async () => {
+    if (!budget) return;
+    setLoadingHistory(true);
+    try {
+      const response = await financeApi.getBudgetHistory(budget.id);
+      setHistory(response.data);
+    } catch (error) {
+      console.error('Error loading history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const loadBudget = async () => {
     try {
@@ -397,16 +437,18 @@ export default function HouseBudget() {
           { id: 'overview', label: 'Overview' },
           { id: 'details', label: 'Budget Items' },
           { id: 'split', label: 'Split View' },
+          { id: 'history', label: 'History', icon: <History size={16} /> },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as typeof activeTab)}
-            className={`px-4 py-2 font-medium border-b-2 -mb-px transition-colors ${
+            className={`px-4 py-2 font-medium border-b-2 -mb-px transition-colors flex items-center gap-2 ${
               activeTab === tab.id
                 ? 'text-primary-600 border-primary-600'
                 : 'text-gray-500 border-transparent hover:text-gray-700'
             }`}
           >
+            {'icon' in tab && tab.icon}
             {tab.label}
           </button>
         ))}
@@ -791,6 +833,128 @@ export default function HouseBudget() {
           </div>
         );
       })()}
+
+      {/* History Tab */}
+      {activeTab === 'history' && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <History size={20} />
+              Budget Change History
+            </h3>
+            <button
+              onClick={loadHistory}
+              className="text-sm text-primary-600 hover:text-primary-700"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {loadingHistory ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <History size={48} className="mx-auto mb-4 opacity-30" />
+              <p>No changes recorded yet</p>
+              <p className="text-sm">Changes to budget items will appear here</p>
+            </div>
+          ) : (
+            <div className="relative">
+              {/* Timeline line */}
+              <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+
+              <div className="space-y-4">
+                {history.map((change, index) => {
+                  const isCreate = change.change_type === 'create';
+                  const isDelete = change.change_type === 'delete';
+                  const isUpdate = change.change_type === 'update';
+
+                  return (
+                    <div key={change.id} className="relative flex gap-4">
+                      {/* Timeline dot */}
+                      <div
+                        className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${
+                          isCreate
+                            ? 'bg-green-100 text-green-600'
+                            : isDelete
+                            ? 'bg-red-100 text-red-600'
+                            : 'bg-blue-100 text-blue-600'
+                        }`}
+                      >
+                        {isCreate && <CirclePlus size={20} />}
+                        {isDelete && <CircleMinus size={20} />}
+                        {isUpdate && (
+                          change.new_value > change.old_value ? (
+                            <TrendingUp size={20} />
+                          ) : (
+                            <TrendingDown size={20} />
+                          )
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div
+                        className={`flex-1 p-4 rounded-lg ${
+                          isCreate
+                            ? 'bg-green-50 border border-green-200'
+                            : isDelete
+                            ? 'bg-red-50 border border-red-200'
+                            : 'bg-blue-50 border border-blue-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {change.line_item_name || 'Budget'}
+                              {isCreate && (
+                                <span className="ml-2 text-green-600 text-sm">
+                                  Added
+                                </span>
+                              )}
+                              {isDelete && (
+                                <span className="ml-2 text-red-600 text-sm">
+                                  Removed
+                                </span>
+                              )}
+                            </p>
+                            {isUpdate && change.field_name && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                {change.field_name}:{' '}
+                                <span className="text-red-600 line-through">
+                                  {change.old_value}
+                                </span>
+                                {' → '}
+                                <span className="text-green-600 font-medium">
+                                  {change.new_value}
+                                </span>
+                              </p>
+                            )}
+                            {(isCreate || isDelete) && change.new_value && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                Amount: {isDelete ? change.old_value : change.new_value}
+                              </p>
+                            )}
+                            {change.note && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {change.note}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">
+                            {change.formatted_date}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add Item Modal */}
       {showAddModal && (
