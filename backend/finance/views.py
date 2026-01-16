@@ -523,13 +523,11 @@ def category_spending_breakdown(request):
     results = []
 
     for i in range(months_count):
-        # Calculate month boundaries
-        if now.month - i <= 0:
-            year = now.year - 1
-            month = 12 + (now.month - i)
-        else:
-            year = now.year
-            month = now.month - i
+        # Calculate month boundaries properly for any number of months back
+        # Use total months calculation to handle year boundaries correctly
+        total_months = now.year * 12 + now.month - i
+        year = (total_months - 1) // 12
+        month = (total_months - 1) % 12 + 1
 
         month_start = date(year, month, 1)
         last_day = calendar.monthrange(year, month)[1]
