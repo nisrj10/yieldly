@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
   ArrowRightLeft,
-  PiggyBank,
   TrendingUp,
   Target,
   Settings,
@@ -23,7 +22,6 @@ interface LayoutProps {
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/transactions', icon: ArrowRightLeft, label: 'Transactions' },
-  { path: '/budgets', icon: PiggyBank, label: 'Budgets' },
   { path: '/house-budget', icon: Home, label: 'House Budget' },
   { path: '/monthly', icon: Calendar, label: 'Monthly Tracking' },
   { path: '/investments', icon: TrendingUp, label: 'Investments' },

@@ -67,6 +67,7 @@ const groupIcons: Record<string, React.ReactNode> = {
   Property: <Building size={18} />,
   Savings: <PiggyBank size={18} />,
   Personal: <User size={18} />,
+  Income: <Wallet size={18} />,
 };
 
 const groupColors: Record<string, string> = {
@@ -78,6 +79,7 @@ const groupColors: Record<string, string> = {
   Property: 'bg-yellow-500',
   Savings: 'bg-cyan-500',
   Personal: 'bg-indigo-500',
+  Income: 'bg-emerald-500',
 };
 
 export default function HouseBudget() {
@@ -233,11 +235,27 @@ export default function HouseBudget() {
   }
 
   const nishantSalary = Number(budget.primary_salary);
-  const kratiSalary = Number(budget.partner_contribution);
-  const totalIncome = nishantSalary + kratiSalary;
-  const totalOutgoing = Number(budget.total_expenses) + Number(budget.total_savings);
-  const remaining = totalIncome - totalOutgoing;
-  const savingsRate = totalIncome > 0 ? (Number(budget.total_savings) / totalIncome) * 100 : 0;
+  // Calculate Krati's total contribution from her line items (personal_partner)
+  const kratiContribution = budget.line_items
+    .filter(item => item.split_type === 'personal_partner')
+    .reduce((sum, item) => sum + Number(item.amount), 0);
+  // Krati's cash contribution goes to household pot (Income group items)
+  const kratiCashToHousehold = budget.line_items
+    .filter(item => item.split_type === 'personal_partner' && item.group === 'Income')
+    .reduce((sum, item) => sum + Number(item.amount), 0);
+  const totalIncome = nishantSalary + kratiContribution;
+  // Nishant's outgoing (items he pays for)
+  const nishantOutgoing = budget.line_items
+    .filter(item => item.split_type === 'personal_primary')
+    .reduce((sum, item) => sum + Number(item.amount), 0);
+  // Available pot = Nishant salary + Krati's cash contribution to household
+  const availablePot = nishantSalary + kratiCashToHousehold;
+  const remaining = availablePot - nishantOutgoing;
+  // Calculate savings (only Nishant's savings, not Krati's direct payments)
+  const nishantSavings = budget.line_items
+    .filter(item => item.split_type === 'personal_primary' && item.category_type === 'saving')
+    .reduce((sum, item) => sum + Number(item.amount), 0);
+  const savingsRate = availablePot > 0 ? (nishantSavings / availablePot) * 100 : 0;
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -306,33 +324,24 @@ export default function HouseBudget() {
             <p className="text-xs text-gray-400 mt-1">{((nishantSalary / totalIncome) * 100).toFixed(0)}% of household</p>
           </div>
 
-          {/* Krati's Income */}
+          {/* Krati's Contribution */}
           <div className="bg-white/10 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center">
                 <span className="font-bold">K</span>
               </div>
               <div>
-                <p className="text-sm text-gray-300">{budget.partner_name}'s Salary</p>
-                {editingIncome ? (
-                  <input
-                    type="number"
-                    value={budget.partner_contribution}
-                    onChange={(e) => setBudget({ ...budget, partner_contribution: parseFloat(e.target.value) || 0 })}
-                    className="bg-white/20 border-0 rounded px-2 py-1 text-white w-32"
-                  />
-                ) : (
-                  <p className="text-2xl font-bold">{formatCurrency(kratiSalary)}</p>
-                )}
+                <p className="text-sm text-gray-300">{budget.partner_name}'s Contribution</p>
+                <p className="text-2xl font-bold">{formatCurrency(kratiContribution)}</p>
               </div>
             </div>
             <div className="h-2 bg-white/20 rounded-full overflow-hidden">
               <div
                 className="h-full bg-pink-400 rounded-full"
-                style={{ width: `${(kratiSalary / totalIncome) * 100}%` }}
+                style={{ width: `${(kratiContribution / totalIncome) * 100}%` }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">{((kratiSalary / totalIncome) * 100).toFixed(0)}% of household</p>
+            <p className="text-xs text-gray-400 mt-1">£1,300 cash + £300 India SCB</p>
           </div>
 
           {/* Total */}
@@ -355,12 +364,12 @@ export default function HouseBudget() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card bg-gradient-to-br from-red-50 to-orange-50 border-red-200">
           <p className="text-sm text-gray-600 mb-1">Expenses</p>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(budget.total_expenses)}</p>
-          <p className="text-xs text-gray-500">{((Number(budget.total_expenses) / totalIncome) * 100).toFixed(0)}% of income</p>
+          <p className="text-2xl font-bold text-red-600">{formatCurrency(nishantOutgoing - nishantSavings)}</p>
+          <p className="text-xs text-gray-500">{(((nishantOutgoing - nishantSavings) / availablePot) * 100).toFixed(0)}% of available</p>
         </div>
         <div className="card bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
           <p className="text-sm text-gray-600 mb-1">Savings</p>
-          <p className="text-2xl font-bold text-blue-600">{formatCurrency(budget.total_savings)}</p>
+          <p className="text-2xl font-bold text-blue-600">{formatCurrency(nishantSavings)}</p>
           <p className="text-xs text-gray-500">{savingsRate.toFixed(0)}% savings rate</p>
         </div>
         <div className={`card ${remaining >= 0 ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200'}`}>
@@ -370,9 +379,9 @@ export default function HouseBudget() {
         </div>
         <div className="card bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
           <p className="text-sm text-gray-600 mb-1">Allocated</p>
-          <p className="text-2xl font-bold text-purple-600">{((totalOutgoing / totalIncome) * 100).toFixed(0)}%</p>
+          <p className="text-2xl font-bold text-purple-600">{((nishantOutgoing / availablePot) * 100).toFixed(0)}%</p>
           <div className="h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
-            <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.min((totalOutgoing / totalIncome) * 100, 100)}%` }} />
+            <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.min((nishantOutgoing / availablePot) * 100, 100)}%` }} />
           </div>
         </div>
       </div>
@@ -430,7 +439,7 @@ export default function HouseBudget() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">Savings & Investments</h3>
             <div className="space-y-3">
-              {budget.line_items.filter(i => i.category_type === 'saving').map((item) => (
+              {budget.line_items.filter(i => i.category_type === 'saving' && i.group !== 'Income').map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">{item.name}</p>
@@ -446,7 +455,9 @@ export default function HouseBudget() {
               ))}
               <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
                 <span className="font-semibold">Total Savings</span>
-                <span className="text-xl font-bold text-blue-600">{formatCurrency(budget.total_savings)}</span>
+                <span className="text-xl font-bold text-blue-600">
+                  {formatCurrency(budget.line_items.filter(i => i.category_type === 'saving' && i.group !== 'Income').reduce((s, i) => s + Number(i.amount), 0))}
+                </span>
               </div>
             </div>
           </div>
@@ -489,7 +500,7 @@ export default function HouseBudget() {
       {/* Details Tab */}
       {activeTab === 'details' && (
         <div className="space-y-4">
-          {Object.entries(groupedItems).sort(([a], [b]) => a.localeCompare(b)).map(([group, items]) => (
+          {Object.entries(groupedItems).filter(([group]) => group !== 'Income').sort(([a], [b]) => a.localeCompare(b)).map(([group, items]) => (
             <div key={group} className="card">
               <button
                 onClick={() => toggleGroup(group)}
@@ -600,127 +611,143 @@ export default function HouseBudget() {
       )}
 
       {/* Split View Tab */}
-      {activeTab === 'split' && (
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Nishant's View */}
-          <div className="card border-2 border-indigo-200">
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b">
-              <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">N</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">Nishant</h3>
-                <p className="text-sm text-gray-500">Income: {formatCurrency(nishantSalary)}</p>
-              </div>
-            </div>
+      {activeTab === 'split' && (() => {
+        // Personal savings (Nishant's personal items)
+        const isPersonalSaving = (item: BudgetLineItem) => {
+          const name = item.name.toLowerCase();
+          return item.category_type === 'saving' &&
+            item.group !== 'Income' &&
+            item.split_type === 'personal_primary' &&
+            (name.includes('personal') || name === 'cash saving' || item.group === 'Personal');
+        };
+        const personalSavings = budget.line_items.filter(isPersonalSaving);
+        const personalSavingsTotal = personalSavings.reduce((s, i) => s + Number(i.amount), 0);
 
-            <div className="space-y-2 mb-4">
-              <div className="flex justify-between text-sm">
-                <span>Share of expenses</span>
-                <span className="font-medium">{formatCurrency(budget.primary_total)}</span>
-              </div>
-              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-indigo-500 rounded-full"
-                  style={{ width: `${(budget.primary_total / nishantSalary) * 100}%` }}
-                />
-              </div>
-            </div>
+        // Family savings (shared/family investments - excludes personal and Krati's direct payments)
+        const familySavings = budget.line_items.filter(i =>
+          i.category_type === 'saving' &&
+          i.group !== 'Income' &&
+          i.split_type === 'personal_primary' &&
+          !isPersonalSaving(i)
+        );
+        const familySavingsTotal = familySavings.reduce((s, i) => s + Number(i.amount), 0);
 
-            <div className="bg-indigo-50 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Remaining</span>
-                <span className={`text-xl font-bold ${nishantSalary - budget.primary_total >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(nishantSalary - budget.primary_total)}
-                </span>
-              </div>
-            </div>
+        // Essential expenses (non-savings items Nishant pays)
+        const essentialExpenses = budget.line_items.filter(i =>
+          i.category_type === 'expense' &&
+          i.split_type === 'personal_primary'
+        );
+        const essentialExpensesTotal = essentialExpenses.reduce((s, i) => s + Number(i.amount), 0);
 
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm font-medium text-gray-600 mb-2">Personal Items:</p>
-              {budget.line_items.filter(i => i.split_type === 'personal_primary').map(item => (
-                <div key={item.id} className="flex justify-between text-sm py-1">
-                  <span>{item.name}</span>
-                  <span className="font-medium">{formatCurrency(item.amount)}</span>
+        return (
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Personal Savings */}
+            <div className="card border-2 border-indigo-200">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+                <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
+                  <User className="text-white" size={24} />
                 </div>
-              ))}
-            </div>
-          </div>
+                <div>
+                  <h3 className="font-bold text-lg">Personal Savings</h3>
+                  <p className="text-sm text-gray-500">Nishant's personal funds</p>
+                </div>
+              </div>
 
-          {/* Krati's View */}
-          <div className="card border-2 border-pink-200">
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b">
-              <div className="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">K</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">{budget.partner_name}</h3>
-                <p className="text-sm text-gray-500">Income: {formatCurrency(kratiSalary)}</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex justify-between text-sm">
-                <span>Share of expenses</span>
-                <span className="font-medium">{formatCurrency(budget.partner_total)}</span>
-              </div>
-              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-pink-500 rounded-full"
-                  style={{ width: `${(budget.partner_total / kratiSalary) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="bg-pink-50 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Remaining</span>
-                <span className={`text-xl font-bold ${kratiSalary - budget.partner_total >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(kratiSalary - budget.partner_total)}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm font-medium text-gray-600 mb-2">Personal Items:</p>
-              {budget.line_items.filter(i => i.split_type === 'personal_partner').length === 0 ? (
-                <p className="text-sm text-gray-400">No personal items</p>
-              ) : (
-                budget.line_items.filter(i => i.split_type === 'personal_partner').map(item => (
-                  <div key={item.id} className="flex justify-between text-sm py-1">
+              <div className="space-y-2 mb-4">
+                {personalSavings.map(item => (
+                  <div key={item.id} className="flex justify-between text-sm py-2 px-3 bg-indigo-50 rounded-lg">
                     <span>{item.name}</span>
                     <span className="font-medium">{formatCurrency(item.amount)}</span>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
+                ))}
+              </div>
 
-          {/* Transfer Summary */}
-          <div className="card md:col-span-2 bg-gradient-to-r from-gray-50 to-slate-50">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <ArrowRight size={20} />
-              Monthly Transfer Summary
-            </h3>
-            <div className="flex items-center justify-center gap-8 py-6">
-              <div className="text-center">
-                <p className="text-sm text-gray-500">Krati pays</p>
-                <p className="text-2xl font-bold text-pink-600">{formatCurrency(budget.partner_total)}</p>
+              <div className="bg-indigo-100 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total Personal</span>
+                  <span className="text-xl font-bold text-indigo-600">{formatCurrency(personalSavingsTotal)}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{((personalSavingsTotal / availablePot) * 100).toFixed(1)}% of available pot</p>
               </div>
-              <div className="text-4xl text-gray-300">→</div>
-              <div className="text-center">
-                <p className="text-sm text-gray-500">To household pot</p>
-                <p className="text-2xl font-bold text-gray-700">{formatCurrency(totalOutgoing)}</p>
+            </div>
+
+            {/* Family Savings */}
+            <div className="card border-2 border-cyan-200">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b">
+                <div className="w-12 h-12 bg-cyan-500 rounded-full flex items-center justify-center">
+                  <Users className="text-white" size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Family Savings</h3>
+                  <p className="text-sm text-gray-500">Shared family investments</p>
+                </div>
               </div>
-              <div className="text-4xl text-gray-300">←</div>
-              <div className="text-center">
-                <p className="text-sm text-gray-500">Nishant pays</p>
-                <p className="text-2xl font-bold text-indigo-600">{formatCurrency(budget.primary_total)}</p>
+
+              <div className="space-y-2 mb-4">
+                {familySavings.map(item => (
+                  <div key={item.id} className="flex justify-between text-sm py-2 px-3 bg-cyan-50 rounded-lg">
+                    <span>{item.name}</span>
+                    <span className="font-medium">{formatCurrency(item.amount)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-cyan-100 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total Family</span>
+                  <span className="text-xl font-bold text-cyan-600">{formatCurrency(familySavingsTotal)}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{((familySavingsTotal / availablePot) * 100).toFixed(1)}% of available pot</p>
+              </div>
+            </div>
+
+            {/* Money Flow Summary */}
+            <div className="card md:col-span-2 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+              <h3 className="font-semibold mb-6 flex items-center gap-2">
+                <ArrowRight size={20} />
+                Monthly Money Flow
+              </h3>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/10 rounded-xl p-4 text-center">
+                  <p className="text-sm text-gray-300 mb-1">Available Pot</p>
+                  <p className="text-2xl font-bold text-green-400">{formatCurrency(availablePot)}</p>
+                  <p className="text-xs text-gray-400 mt-1">Nishant + Krati cash</p>
+                </div>
+
+                <div className="bg-white/10 rounded-xl p-4 text-center">
+                  <p className="text-sm text-gray-300 mb-1">Essential Expenses</p>
+                  <p className="text-2xl font-bold text-red-400">{formatCurrency(essentialExpensesTotal)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{((essentialExpensesTotal / availablePot) * 100).toFixed(0)}% of pot</p>
+                </div>
+
+                <div className="bg-white/10 rounded-xl p-4 text-center">
+                  <p className="text-sm text-gray-300 mb-1">Total Savings</p>
+                  <p className="text-2xl font-bold text-blue-400">{formatCurrency(personalSavingsTotal + familySavingsTotal)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{(((personalSavingsTotal + familySavingsTotal) / availablePot) * 100).toFixed(0)}% of pot</p>
+                </div>
+
+                <div className="bg-white/10 rounded-xl p-4 text-center">
+                  <p className="text-sm text-gray-300 mb-1">Remaining</p>
+                  <p className={`text-2xl font-bold ${remaining >= 0 ? 'text-green-400' : 'text-orange-400'}`}>{formatCurrency(remaining)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{remaining >= 0 ? 'Buffer' : 'Over budget'}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-white/20">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-300">Krati's contribution to pot:</span>
+                  <span className="font-medium text-pink-400">{formatCurrency(kratiCashToHousehold)}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-gray-300">Krati's direct payment (India SCB):</span>
+                  <span className="font-medium text-pink-400">{formatCurrency(kratiContribution - kratiCashToHousehold)}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Add Item Modal */}
       {showAddModal && (
