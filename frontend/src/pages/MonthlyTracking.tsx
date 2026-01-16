@@ -65,7 +65,7 @@ export default function MonthlyTracking() {
 
   const loadData = async () => {
     try {
-      const res = await financeApi.getCategorySpending(6);
+      const res = await financeApi.getCategorySpending(24);
       setData(res.data);
     } catch (error) {
       console.error('Error loading category spending:', error);
