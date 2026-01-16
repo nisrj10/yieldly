@@ -494,7 +494,7 @@ def category_spending_breakdown(request):
     CATEGORIES = {
         'Groceries': {
             'keywords': ['tesco', 'sainsbury', 'asda', 'marks & spencer', 'm&s', 'aldi', 'lidl', 'co-op', 'costco', 'morrisons', 'waitrose'],
-            'exclude': ['petrol', 'fuel'],
+            'exclude': ['petrol', 'fuel', 'insurance', 'travel insurance', 'mobile', 'phone'],
             'budget': 350,
         },
         'Eating Out': {
