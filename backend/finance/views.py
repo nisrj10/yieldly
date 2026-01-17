@@ -152,7 +152,9 @@ class MonthlyNoteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return MonthlyNote.objects.filter(user=self.request.user)
+        # Share monthly notes across household
+        household_users = get_household_users(self.request.user)
+        return MonthlyNote.objects.filter(user__in=household_users)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -310,9 +312,10 @@ def monthly_trends(request):
         savings = float(income) - float(expenses)
         savings_rate = (savings / float(income) * 100) if income > 0 else 0
 
-        # Get monthly note if exists
+        # Get monthly note if exists (shared across household)
+        household_users = get_household_users(user)
         try:
-            note_obj = MonthlyNote.objects.get(user=user, year=year, month=month)
+            note_obj = MonthlyNote.objects.get(user__in=household_users, year=year, month=month)
             note = note_obj.note
             income_target = float(note_obj.income_target) if note_obj.income_target else None
             expense_target = float(note_obj.expense_target) if note_obj.expense_target else None
