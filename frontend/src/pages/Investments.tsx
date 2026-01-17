@@ -326,26 +326,38 @@ export default function Investments() {
       </div>
 
       {/* Net Worth Summary */}
-      {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="card bg-gradient-to-br from-primary-500 to-primary-700 text-white">
-            <p className="text-sm opacity-80">My Net Worth</p>
-            <p className="text-2xl font-bold">{formatCurrency(summary.my_net_worth)}</p>
+      {summary && (() => {
+        const sharesTotal = summary.investments
+          .filter(i => i.name.toLowerCase().includes('shares') || i.name.toLowerCase().includes('etoro') || i.name.toLowerCase().includes('freetrade'))
+          .reduce((sum, acc) => sum + Number(acc.current_value), 0);
+        const isaTotal = summary.investments
+          .filter(i => i.portfolio_type === 'isa')
+          .reduce((sum, acc) => sum + Number(acc.current_value), 0);
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="card bg-gradient-to-br from-primary-500 to-primary-700 text-white">
+              <p className="text-sm opacity-80">My Net Worth</p>
+              <p className="text-2xl font-bold">{formatCurrency(summary.my_net_worth)}</p>
+            </div>
+            <div className="card bg-gradient-to-br from-green-500 to-green-700 text-white">
+              <p className="text-sm opacity-80">Kiaan's Net Worth</p>
+              <p className="text-2xl font-bold">{formatCurrency(summary.kiaan_net_worth)}</p>
+            </div>
+            <div className="card">
+              <p className="text-sm text-gray-600">Investments</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(summary.total_investments)}</p>
+              <div className="flex gap-2 mt-2 text-xs">
+                <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">ISA: {formatCurrency(isaTotal)}</span>
+                <span className="bg-green-100 text-green-700 px-2 py-1 rounded">Shares: {formatCurrency(sharesTotal)}</span>
+              </div>
+            </div>
+            <div className="card">
+              <p className="text-sm text-gray-600">Savings & Pots</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(summary.total_savings + summary.total_pots)}</p>
+            </div>
           </div>
-          <div className="card bg-gradient-to-br from-green-500 to-green-700 text-white">
-            <p className="text-sm opacity-80">Kiaan's Net Worth</p>
-            <p className="text-2xl font-bold">{formatCurrency(summary.kiaan_net_worth)}</p>
-          </div>
-          <div className="card">
-            <p className="text-sm text-gray-600">Investments</p>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(summary.total_investments)}</p>
-          </div>
-          <div className="card">
-            <p className="text-sm text-gray-600">Savings & Pots</p>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(summary.total_savings + summary.total_pots)}</p>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Investments Section */}
       {summary && summary.investments.length > 0 && (

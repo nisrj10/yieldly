@@ -25,6 +25,7 @@ import {
   TrendingDown,
   CirclePlus,
   CircleMinus,
+  CreditCard,
 } from 'lucide-react';
 
 interface BudgetLineItem {
@@ -785,6 +786,57 @@ export default function HouseBudget() {
                 <p className="text-xs text-gray-500 mt-1">{((familySavingsTotal / availablePot) * 100).toFixed(1)}% of available pot</p>
               </div>
             </div>
+
+            {/* Monzo Funding Card */}
+            {(() => {
+              // Items that should be funded into Monzo
+              const monzoItems = [
+                { name: 'Lko Property', amount: 450, description: 'India property expenses' },
+                { name: "Kiaan's Expenses", amount: 200, description: 'Kiaan childcare & activities' },
+                { name: 'Grocery', amount: 350, description: 'Monthly groceries' },
+                { name: 'Personal Allowance', amount: 150, description: "Nishant's spending money" },
+                { name: 'Holiday', amount: 400, description: 'Travel & holiday fund' },
+              ];
+
+              // Find matching expense items from budget
+              const houseExpenseItem = budget.line_items.find(i =>
+                i.name.toLowerCase().includes('house') && i.category_type === 'expense'
+              );
+
+              if (houseExpenseItem) {
+                monzoItems.push({ name: 'House Expenses', amount: Number(houseExpenseItem.amount), description: 'House maintenance & supplies' });
+              }
+
+              const monzoTotal = monzoItems.reduce((s, i) => s + i.amount, 0);
+
+              return (
+                <div className="card md:col-span-3 border-2 border-pink-200 bg-gradient-to-br from-pink-50 to-white">
+                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-pink-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-full flex items-center justify-center">
+                      <CreditCard className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Monthly Monzo Funding</h3>
+                      <p className="text-sm text-gray-500">Amount to transfer to Monzo each month</p>
+                    </div>
+                    <div className="ml-auto text-right">
+                      <p className="text-2xl font-bold text-pink-600">{formatCurrency(monzoTotal)}</p>
+                      <p className="text-xs text-gray-500">per month</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {monzoItems.map((item, idx) => (
+                      <div key={idx} className="bg-white border border-pink-100 rounded-xl p-4 text-center shadow-sm">
+                        <p className="text-sm font-medium text-gray-700 mb-1">{item.name}</p>
+                        <p className="text-xl font-bold text-pink-600">{formatCurrency(item.amount)}</p>
+                        <p className="text-xs text-gray-400 mt-1">{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Money Flow Summary */}
             <div className="card md:col-span-3 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
