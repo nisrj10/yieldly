@@ -2,11 +2,21 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.utils import timezone
 from datetime import timedelta, date
 import calendar
 from .models import Category, Account, Transaction, Budget, Investment, SavingsGoal, MonthlyNote, RecurringTransaction, HouseBudget, BudgetLineItem, BudgetChangeLog, CategoryExclusion, Portfolio, PortfolioSnapshot
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
+def get_household_users(user):
+    """Get all users in the same household, or just the user if no household."""
+    if user.household:
+        return User.objects.filter(household=user.household)
+    return User.objects.filter(id=user.id)
 from .serializers import (
     CategorySerializer,
     AccountSerializer,
@@ -116,7 +126,9 @@ class InvestmentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Investment.objects.filter(user=self.request.user)
+        # Share investments across household
+        household_users = get_household_users(self.request.user)
+        return Investment.objects.filter(user__in=household_users)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -127,7 +139,9 @@ class SavingsGoalViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return SavingsGoal.objects.filter(user=self.request.user)
+        # Share savings goals across household
+        household_users = get_household_users(self.request.user)
+        return SavingsGoal.objects.filter(user__in=household_users)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -437,7 +451,9 @@ class HouseBudgetViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return HouseBudget.objects.filter(user=self.request.user).prefetch_related('line_items')
+        # Share house budgets across household
+        household_users = get_household_users(self.request.user)
+        return HouseBudget.objects.filter(user__in=household_users).prefetch_related('line_items')
 
     def perform_create(self, serializer):
         budget = serializer.save(user=self.request.user)
@@ -544,7 +560,9 @@ class BudgetLineItemViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return BudgetLineItem.objects.filter(budget__user=self.request.user)
+        # Share budget line items across household
+        household_users = get_household_users(self.request.user)
+        return BudgetLineItem.objects.filter(budget__user__in=household_users)
 
     def perform_create(self, serializer):
         budget_id = self.request.data.get('budget')
@@ -609,7 +627,9 @@ class PortfolioViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Portfolio.objects.filter(user=self.request.user, is_active=True).prefetch_related('snapshots')
+        # Share portfolios across household
+        household_users = get_household_users(self.request.user)
+        return Portfolio.objects.filter(user__in=household_users, is_active=True).prefetch_related('snapshots')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -686,7 +706,9 @@ class PortfolioSnapshotViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return PortfolioSnapshot.objects.filter(portfolio__user=self.request.user)
+        # Share portfolio snapshots across household
+        household_users = get_household_users(self.request.user)
+        return PortfolioSnapshot.objects.filter(portfolio__user__in=household_users)
 
     def perform_create(self, serializer):
         portfolio_id = self.request.data.get('portfolio')
