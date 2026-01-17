@@ -360,18 +360,18 @@ def budget_overview(request):
     now = timezone.now().date()
     month_start = now.replace(day=1)
 
-    # Get all active budgets
-    budgets = Budget.objects.filter(user=user, is_active=True)
+    # Get all active budgets (only for expense categories)
+    budgets = Budget.objects.filter(user=user, is_active=True, category__type='expense')
 
-    # Calculate total budgeted and spent
+    # Calculate total budgeted and spent (only expense categories)
     total_budgeted = budgets.aggregate(Sum('amount'))['amount__sum'] or 0
     total_spent = Transaction.objects.filter(
-        user=user, type='expense', date__gte=month_start
+        user=user, type='expense', date__gte=month_start, category__type='expense'
     ).aggregate(Sum('amount'))['amount__sum'] or 0
 
-    # Get spending by category
+    # Get spending by category (only expense categories)
     category_spending = Transaction.objects.filter(
-        user=user, type='expense', date__gte=month_start
+        user=user, type='expense', date__gte=month_start, category__type='expense'
     ).values('category__id', 'category__name', 'category__color').annotate(
         spent=Sum('amount')
     ).order_by('-spent')

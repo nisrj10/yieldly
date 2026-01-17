@@ -461,7 +461,7 @@ export default function HouseBudget() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">Spending Breakdown</h3>
             <div className="space-y-3">
-              {expensesByGroup.filter(g => g.total > 0).sort((a, b) => b.total - a.total).map(({ group, total }) => (
+              {expensesByGroup.filter(g => g.total > 0 && g.group !== 'Income').sort((a, b) => b.total - a.total).map(({ group, total }) => (
                 <div key={group} className="group">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
