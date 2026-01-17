@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { financeApi } from '../api/client';
-import { formatCurrency, formatPercent } from '../utils/format';
+import { formatCurrency } from '../utils/format';
 import {
   Plus,
   X,
   TrendingUp,
-  TrendingDown,
   Calendar,
   Leaf,
   PiggyBank,
@@ -13,7 +12,6 @@ import {
   Shield,
   Wallet,
   Edit2,
-  ChevronRight,
 } from 'lucide-react';
 
 interface Portfolio {
@@ -83,8 +81,8 @@ function PortfolioCard({
   const startDate = new Date(portfolio.start_date);
   const startMonthYear = startDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
 
-  const typeConfig = PORTFOLIO_TYPES.find((t) => t.value === portfolio.portfolio_type);
-  const Icon = typeConfig?.icon || Wallet;
+  const _typeConfig = PORTFOLIO_TYPES.find((t) => t.value === portfolio.portfolio_type);
+  void _typeConfig; // Reserved for future icon display
 
   return (
     <div className="bg-gray-900 rounded-xl p-5 text-white relative group">

@@ -36,7 +36,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [_showInviteModal, _setShowInviteModal] = useState(false);
+  void _showInviteModal; void _setShowInviteModal; // Reserved for invite modal
   const [showCreateHouseholdModal, setShowCreateHouseholdModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [householdName, setHouseholdName] = useState('');

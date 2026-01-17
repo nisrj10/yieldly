@@ -11,7 +11,6 @@ import {
   User,
   Sparkles,
   ChevronDown,
-  ChevronUp,
   X,
 } from 'lucide-react';
 

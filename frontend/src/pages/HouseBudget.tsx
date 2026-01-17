@@ -918,7 +918,7 @@ export default function HouseBudget() {
               <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
 
               <div className="space-y-4">
-                {history.map((change, index) => {
+                {history.map((change) => {
                   const isCreate = change.change_type === 'create';
                   const isDelete = change.change_type === 'delete';
                   const isUpdate = change.change_type === 'update';

@@ -1,0 +1,2180 @@
+[
+{
+  "model": "accounts.household",
+  "pk": 1,
+  "fields": {
+    "name": "Raj Family",
+    "created_at": "2026-01-11T23:47:02.338Z",
+    "created_by": 1
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$DtYAMBES5jfyZ7JZX74Z6B$I9ObXBwN+sDNo7J4U/ejOEI9OBuezD+iDb5S/uMOTEA=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "nishant",
+    "first_name": "Nishant",
+    "last_name": "Raj",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-01-11T23:47:02.090Z",
+    "email": "nishant@yiedly.com",
+    "household": 1,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$R5QfUBmzEsCWcHG1R6bkbF$srape8t+menhUD2ImGMrGhlIcr30N59rNQyiuT1kxUk=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "krati",
+    "first_name": "Krati",
+    "last_name": "Raj",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-01-11T23:47:02.341Z",
+    "email": "krati@yiedly.com",
+    "household": 1,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "accounts.user",
+  "pk": 4,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$L06erI4CfXwxd8bRpv0hii$Wf95ZKIzFzrQCt+Z4sOQI+h1OIIt+jfZK8Mq8slB3O8=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "nishantraj",
+    "first_name": "Nishant Raj",
+    "last_name": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-01-16T19:28:17.489Z",
+    "email": "nisrj10@gmail.com",
+    "household": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 1,
+  "fields": {
+    "name": "Salary",
+    "type": "income",
+    "icon": "",
+    "color": "#22c55e",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 2,
+  "fields": {
+    "name": "Freelance",
+    "type": "income",
+    "icon": "",
+    "color": "#10b981",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 3,
+  "fields": {
+    "name": "Investments",
+    "type": "income",
+    "icon": "",
+    "color": "#14b8a6",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 4,
+  "fields": {
+    "name": "Gifts",
+    "type": "income",
+    "icon": "",
+    "color": "#06b6d4",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 5,
+  "fields": {
+    "name": "Other Income",
+    "type": "income",
+    "icon": "",
+    "color": "#0ea5e9",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 6,
+  "fields": {
+    "name": "Food & Dining",
+    "type": "expense",
+    "icon": "",
+    "color": "#ef4444",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 7,
+  "fields": {
+    "name": "Groceries",
+    "type": "expense",
+    "icon": "",
+    "color": "#f97316",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 8,
+  "fields": {
+    "name": "Transportation",
+    "type": "expense",
+    "icon": "",
+    "color": "#f59e0b",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 9,
+  "fields": {
+    "name": "Housing",
+    "type": "expense",
+    "icon": "",
+    "color": "#eab308",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 10,
+  "fields": {
+    "name": "Utilities",
+    "type": "expense",
+    "icon": "",
+    "color": "#84cc16",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 11,
+  "fields": {
+    "name": "Healthcare",
+    "type": "expense",
+    "icon": "",
+    "color": "#22c55e",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 12,
+  "fields": {
+    "name": "Entertainment",
+    "type": "expense",
+    "icon": "",
+    "color": "#10b981",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 13,
+  "fields": {
+    "name": "Shopping",
+    "type": "expense",
+    "icon": "",
+    "color": "#14b8a6",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 14,
+  "fields": {
+    "name": "Education",
+    "type": "expense",
+    "icon": "",
+    "color": "#06b6d4",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 15,
+  "fields": {
+    "name": "Personal Care",
+    "type": "expense",
+    "icon": "",
+    "color": "#0ea5e9",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 16,
+  "fields": {
+    "name": "Insurance",
+    "type": "expense",
+    "icon": "",
+    "color": "#3b82f6",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 17,
+  "fields": {
+    "name": "Subscriptions",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 18,
+  "fields": {
+    "name": "Travel",
+    "type": "expense",
+    "icon": "",
+    "color": "#8b5cf6",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 19,
+  "fields": {
+    "name": "Gifts & Donations",
+    "type": "expense",
+    "icon": "",
+    "color": "#a855f7",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 20,
+  "fields": {
+    "name": "Other Expenses",
+    "type": "expense",
+    "icon": "",
+    "color": "#d946ef",
+    "user": null,
+    "is_default": true
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 21,
+  "fields": {
+    "name": "Salary",
+    "type": "income",
+    "icon": "",
+    "color": "#22c55e",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 22,
+  "fields": {
+    "name": "Mortgage",
+    "type": "expense",
+    "icon": "",
+    "color": "#ef4444",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 23,
+  "fields": {
+    "name": "Insurance",
+    "type": "expense",
+    "icon": "",
+    "color": "#f97316",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 24,
+  "fields": {
+    "name": "Car Insurance",
+    "type": "expense",
+    "icon": "",
+    "color": "#fb923c",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 25,
+  "fields": {
+    "name": "Car Fuel",
+    "type": "expense",
+    "icon": "",
+    "color": "#fbbf24",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 26,
+  "fields": {
+    "name": "Car Lease",
+    "type": "expense",
+    "icon": "",
+    "color": "#facc15",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 27,
+  "fields": {
+    "name": "Car Tax",
+    "type": "expense",
+    "icon": "",
+    "color": "#fde047",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 28,
+  "fields": {
+    "name": "Grocery",
+    "type": "expense",
+    "icon": "",
+    "color": "#84cc16",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 29,
+  "fields": {
+    "name": "House Work",
+    "type": "expense",
+    "icon": "",
+    "color": "#22c55e",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 30,
+  "fields": {
+    "name": "Utilities",
+    "type": "expense",
+    "icon": "",
+    "color": "#10b981",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 31,
+  "fields": {
+    "name": "Council Tax",
+    "type": "expense",
+    "icon": "",
+    "color": "#14b8a6",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 32,
+  "fields": {
+    "name": "Dining & Entertainment",
+    "type": "expense",
+    "icon": "",
+    "color": "#06b6d4",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 33,
+  "fields": {
+    "name": "Sky TV",
+    "type": "expense",
+    "icon": "",
+    "color": "#0ea5e9",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 34,
+  "fields": {
+    "name": "Subscriptions",
+    "type": "expense",
+    "icon": "",
+    "color": "#3b82f6",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 35,
+  "fields": {
+    "name": "India Property",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 36,
+  "fields": {
+    "name": "Childcare",
+    "type": "expense",
+    "icon": "",
+    "color": "#8b5cf6",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 37,
+  "fields": {
+    "name": "Kiaan Monthly",
+    "type": "expense",
+    "icon": "",
+    "color": "#a855f7",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 38,
+  "fields": {
+    "name": "Personal Expenses",
+    "type": "expense",
+    "icon": "",
+    "color": "#d946ef",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 39,
+  "fields": {
+    "name": "Investment Contribution",
+    "type": "expense",
+    "icon": "",
+    "color": "#14b8a6",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 40,
+  "fields": {
+    "name": "Savings Contribution",
+    "type": "expense",
+    "icon": "",
+    "color": "#22c55e",
+    "user": 1,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 41,
+  "fields": {
+    "name": "Eating Out",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 42,
+  "fields": {
+    "name": "Transport",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 43,
+  "fields": {
+    "name": "Home & Family",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 44,
+  "fields": {
+    "name": "Health & Beauty",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 45,
+  "fields": {
+    "name": "Insurances",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 46,
+  "fields": {
+    "name": "General",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 47,
+  "fields": {
+    "name": "Business",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 48,
+  "fields": {
+    "name": "Investment",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 49,
+  "fields": {
+    "name": "AI-IF expenses",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 50,
+  "fields": {
+    "name": "VTL T&S",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 51,
+  "fields": {
+    "name": "VTL Subscriptions",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 52,
+  "fields": {
+    "name": "Internal Transfers",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 53,
+  "fields": {
+    "name": "Income",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 54,
+  "fields": {
+    "name": "Entertainment",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 55,
+  "fields": {
+    "name": "Investment",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 56,
+  "fields": {
+    "name": "India house",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 57,
+  "fields": {
+    "name": "India house",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 58,
+  "fields": {
+    "name": "VTL Subscriptions",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 59,
+  "fields": {
+    "name": "Holiday",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 60,
+  "fields": {
+    "name": "Holiday",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 61,
+  "fields": {
+    "name": "Internal Transfers",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 62,
+  "fields": {
+    "name": "Groceries",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 63,
+  "fields": {
+    "name": "Transport",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 64,
+  "fields": {
+    "name": "Travel",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 65,
+  "fields": {
+    "name": "Health & Beauty",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 66,
+  "fields": {
+    "name": "Cash",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 67,
+  "fields": {
+    "name": "Cash",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 68,
+  "fields": {
+    "name": "Home & Family",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 69,
+  "fields": {
+    "name": "Finances",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 70,
+  "fields": {
+    "name": "Finances",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 71,
+  "fields": {
+    "name": "Charity",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 72,
+  "fields": {
+    "name": "Charity",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 73,
+  "fields": {
+    "name": "General",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 74,
+  "fields": {
+    "name": "VTL T&S",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 75,
+  "fields": {
+    "name": "Eating Out",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 76,
+  "fields": {
+    "name": "Income",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 77,
+  "fields": {
+    "name": "AI-IF expenses",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 78,
+  "fields": {
+    "name": "Hobbies",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 79,
+  "fields": {
+    "name": "Hobbies",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 80,
+  "fields": {
+    "name": "Business",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 81,
+  "fields": {
+    "name": "Kiaan",
+    "type": "expense",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 82,
+  "fields": {
+    "name": "Kiaan",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 83,
+  "fields": {
+    "name": "Shopping",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 84,
+  "fields": {
+    "name": "Childcare",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.category",
+  "pk": 85,
+  "fields": {
+    "name": "Insurances",
+    "type": "income",
+    "icon": "",
+    "color": "#6366f1",
+    "user": null,
+    "is_default": false
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 1,
+  "fields": {
+    "name": "Monzo (Joint)",
+    "type": "checking",
+    "balance": "1950.00",
+    "currency": "GBP",
+    "user": 1,
+    "is_active": true,
+    "created_at": "2026-01-11T23:47:02.614Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 2,
+  "fields": {
+    "name": "Joint Savings",
+    "type": "savings",
+    "balance": "300.00",
+    "currency": "GBP",
+    "user": 1,
+    "is_active": true,
+    "created_at": "2026-01-11T23:47:02.615Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 3,
+  "fields": {
+    "name": "Nishant Personal",
+    "type": "checking",
+    "balance": "145.00",
+    "currency": "GBP",
+    "user": 1,
+    "is_active": true,
+    "created_at": "2026-01-11T23:47:02.616Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 4,
+  "fields": {
+    "name": "Investment Account",
+    "type": "investment",
+    "balance": "0.00",
+    "currency": "GBP",
+    "user": 1,
+    "is_active": true,
+    "created_at": "2026-01-11T23:47:02.617Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 7,
+  "fields": {
+    "name": "American Express - American Express® Preferred Rewards - 1001",
+    "type": "credit",
+    "balance": "-2472.58",
+    "currency": "GBP",
+    "user": 4,
+    "is_active": true,
+    "created_at": "2026-01-16T20:49:00.848Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 8,
+  "fields": {
+    "name": "Starling - Personal",
+    "type": "checking",
+    "balance": "7.96",
+    "currency": "GBP",
+    "user": 4,
+    "is_active": true,
+    "created_at": "2026-01-16T20:49:00.850Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 9,
+  "fields": {
+    "name": "American Express - American Express® Preferred Rewards - 2009",
+    "type": "credit",
+    "balance": "2075.91",
+    "currency": "GBP",
+    "user": 4,
+    "is_active": true,
+    "created_at": "2026-01-16T20:49:00.851Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 10,
+  "fields": {
+    "name": "Virgin Credit Card - MR NISHANT RAJ",
+    "type": "credit",
+    "balance": "-1802.16",
+    "currency": "GBP",
+    "user": 4,
+    "is_active": true,
+    "created_at": "2026-01-16T20:49:00.852Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 11,
+  "fields": {
+    "name": "Monzo - Nishant Raj",
+    "type": "checking",
+    "balance": "276.47",
+    "currency": "GBP",
+    "user": 4,
+    "is_active": true,
+    "created_at": "2026-01-16T20:49:00.853Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 12,
+  "fields": {
+    "name": "Lloyds Personal - Mr Nishant Raj",
+    "type": "checking",
+    "balance": "2221.71",
+    "currency": "GBP",
+    "user": 4,
+    "is_active": true,
+    "created_at": "2026-01-16T20:49:00.854Z"
+  }
+},
+{
+  "model": "finance.account",
+  "pk": 13,
+  "fields": {
+    "name": "Tesco Bank - ************7149",
+    "type": "checking",
+    "balance": "779.20",
+    "currency": "GBP",
+    "user": 4,
+    "is_active": true,
+    "created_at": "2026-01-16T20:49:00.856Z"
+  }
+},
+{
+  "model": "finance.budget",
+  "pk": 1,
+  "fields": {
+    "name": "Grocery Budget",
+    "amount": "400.00",
+    "category": 28,
+    "period": "monthly",
+    "user": 1,
+    "start_date": "2026-01-01",
+    "end_date": null,
+    "is_active": true
+  }
+},
+{
+  "model": "finance.budget",
+  "pk": 2,
+  "fields": {
+    "name": "Entertainment Budget",
+    "amount": "100.00",
+    "category": 32,
+    "period": "monthly",
+    "user": 1,
+    "start_date": "2026-01-01",
+    "end_date": null,
+    "is_active": true
+  }
+},
+{
+  "model": "finance.budget",
+  "pk": 3,
+  "fields": {
+    "name": "Car Fuel Budget",
+    "amount": "80.00",
+    "category": 25,
+    "period": "monthly",
+    "user": 1,
+    "start_date": "2026-01-01",
+    "end_date": null,
+    "is_active": true
+  }
+},
+{
+  "model": "finance.budget",
+  "pk": 4,
+  "fields": {
+    "name": "House Maintenance",
+    "amount": "250.00",
+    "category": 29,
+    "period": "monthly",
+    "user": 1,
+    "start_date": "2026-01-01",
+    "end_date": null,
+    "is_active": true
+  }
+},
+{
+  "model": "finance.budget",
+  "pk": 5,
+  "fields": {
+    "name": "Personal Spending",
+    "amount": "200.00",
+    "category": 38,
+    "period": "monthly",
+    "user": 1,
+    "start_date": "2026-01-01",
+    "end_date": null,
+    "is_active": true
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 51,
+  "fields": {
+    "budget": 2,
+    "name": "Mortgage",
+    "amount": "1205.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Housing",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 52,
+  "fields": {
+    "budget": 2,
+    "name": "Life Insurance (Aviva + L&G)",
+    "amount": "157.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Housing",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 53,
+  "fields": {
+    "budget": 2,
+    "name": "Car Insurance",
+    "amount": "60.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Transport",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 54,
+  "fields": {
+    "budget": 2,
+    "name": "Grocery",
+    "amount": "350.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Living",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 56,
+  "fields": {
+    "budget": 2,
+    "name": "Council Tax",
+    "amount": "274.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Housing",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 57,
+  "fields": {
+    "budget": 2,
+    "name": "Car Fuel",
+    "amount": "60.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Transport",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 58,
+  "fields": {
+    "budget": 2,
+    "name": "Sky",
+    "amount": "49.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Subscriptions",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 60,
+  "fields": {
+    "budget": 2,
+    "name": "India Property - Lucknow",
+    "amount": "450.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Property",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 61,
+  "fields": {
+    "budget": 2,
+    "name": "Kiaan Monthly Misc",
+    "amount": "72.50",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Kiaan's Childcare",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 62,
+  "fields": {
+    "budget": 2,
+    "name": "House Work (Cleaning etc.)",
+    "amount": "200.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Housing",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 63,
+  "fields": {
+    "budget": 2,
+    "name": "Personal Allowance",
+    "amount": "129.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Personal",
+    "notes": "Eating out, driving range, activities",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 64,
+  "fields": {
+    "budget": 2,
+    "name": "Annual Holiday",
+    "amount": "400.00",
+    "category_type": "saving",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Savings",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 65,
+  "fields": {
+    "budget": 2,
+    "name": "Moneyfarm - Kiaan JISA",
+    "amount": "300.00",
+    "category_type": "saving",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Savings",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 66,
+  "fields": {
+    "budget": 2,
+    "name": "Moneyfarm - Us",
+    "amount": "700.00",
+    "category_type": "saving",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Savings",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 68,
+  "fields": {
+    "budget": 2,
+    "name": "Nishant's Savings",
+    "amount": "500.00",
+    "category_type": "saving",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Personal",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 69,
+  "fields": {
+    "budget": 2,
+    "name": "Monthly Emergency Fund Cash Top Up",
+    "amount": "250.00",
+    "category_type": "saving",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Savings",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 70,
+  "fields": {
+    "budget": 2,
+    "name": "Krati Cash Contribution",
+    "amount": "1300.00",
+    "category_type": "expense",
+    "split_type": "personal_partner",
+    "primary_share_percent": "0.00",
+    "group": "Income",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 71,
+  "fields": {
+    "budget": 2,
+    "name": "India SCB Investment (Krati)",
+    "amount": "300.00",
+    "category_type": "saving",
+    "split_type": "personal_partner",
+    "primary_share_percent": "0.00",
+    "group": "Savings",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 72,
+  "fields": {
+    "budget": 2,
+    "name": "Lease Car Cost",
+    "amount": "305.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Transport",
+    "notes": "Monthly car lease",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 73,
+  "fields": {
+    "budget": 2,
+    "name": "Village Gym",
+    "amount": "61.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Personal",
+    "notes": "Monthly gym membership",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 74,
+  "fields": {
+    "budget": 2,
+    "name": "Crunchyroll",
+    "amount": "4.99",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "100.00",
+    "group": "Subscriptions",
+    "notes": "Anime streaming",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 75,
+  "fields": {
+    "budget": 2,
+    "name": "Netflix",
+    "amount": "12.99",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "50.00",
+    "group": "Subscriptions",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 76,
+  "fields": {
+    "budget": 2,
+    "name": "Amazon Prime",
+    "amount": "8.99",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "50.00",
+    "group": "Subscriptions",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 77,
+  "fields": {
+    "budget": 2,
+    "name": "Amazon Prime Video",
+    "amount": "2.99",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "50.00",
+    "group": "Subscriptions",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 78,
+  "fields": {
+    "budget": 2,
+    "name": "Disney+",
+    "amount": "5.99",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "50.00",
+    "group": "Subscriptions",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 79,
+  "fields": {
+    "budget": 2,
+    "name": "Gas & Electric (Octopus)",
+    "amount": "161.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "50.00",
+    "group": "Housing",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 80,
+  "fields": {
+    "budget": 2,
+    "name": "Water (Dwr Cymru)",
+    "amount": "44.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "50.00",
+    "group": "Housing",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 81,
+  "fields": {
+    "budget": 2,
+    "name": "Kiaan's Swimming",
+    "amount": "27.50",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "50.00",
+    "group": "Kiaan's Childcare",
+    "notes": "Paid from Kiaan monthly spend budget",
+    "order": 0
+  }
+},
+{
+  "model": "finance.budgetlineitem",
+  "pk": 82,
+  "fields": {
+    "budget": 2,
+    "name": "After School Club",
+    "amount": "100.00",
+    "category_type": "expense",
+    "split_type": "personal_primary",
+    "primary_share_percent": "50.00",
+    "group": "Kiaan's Childcare",
+    "notes": "",
+    "order": 0
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 1,
+  "fields": {
+    "user": 4,
+    "name": "Portfolio 1 - ISA",
+    "portfolio_type": "isa",
+    "risk_level": "4",
+    "provider": "Nutmeg",
+    "initial_value": "22785.05",
+    "start_date": "2022-11-01",
+    "current_value": "30948.94",
+    "year_start_value": "30306.44",
+    "owner_name": "Nishant",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-16T23:45:31.743Z",
+    "updated_at": "2026-01-16T23:45:31.743Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 2,
+  "fields": {
+    "user": 4,
+    "name": "JISA for Kiaan",
+    "portfolio_type": "jisa",
+    "risk_level": "4",
+    "provider": "Nutmeg",
+    "initial_value": "4591.31",
+    "start_date": "2022-11-01",
+    "current_value": "5996.71",
+    "year_start_value": "5893.57",
+    "owner_name": "Kiaan",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-16T23:45:31.746Z",
+    "updated_at": "2026-01-16T23:45:31.746Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 3,
+  "fields": {
+    "user": 4,
+    "name": "Family Emergency Fund",
+    "portfolio_type": "emergency",
+    "risk_level": "none",
+    "provider": "SCB India",
+    "initial_value": "19500.00",
+    "start_date": "2024-01-01",
+    "current_value": "19500.00",
+    "year_start_value": "19500.00",
+    "owner_name": "Krati",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-16T23:45:31.748Z",
+    "updated_at": "2026-01-16T23:45:31.748Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 4,
+  "fields": {
+    "user": 4,
+    "name": "Lloyds Emergency",
+    "portfolio_type": "emergency",
+    "risk_level": "none",
+    "provider": "Lloyds",
+    "initial_value": "3000.00",
+    "start_date": "2024-01-01",
+    "current_value": "3000.00",
+    "year_start_value": "3000.00",
+    "owner_name": "Nishant",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-16T23:45:31.749Z",
+    "updated_at": "2026-01-16T23:45:31.749Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 5,
+  "fields": {
+    "user": 4,
+    "name": "Nishant's Savings",
+    "portfolio_type": "savings",
+    "risk_level": "none",
+    "provider": "Lloyds",
+    "initial_value": "100.00",
+    "start_date": "2024-01-01",
+    "current_value": "100.00",
+    "year_start_value": "100.00",
+    "owner_name": "Nishant",
+    "notes": "Update with current balance",
+    "is_active": true,
+    "created_at": "2026-01-16T23:45:31.750Z",
+    "updated_at": "2026-01-17T00:50:43.588Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 6,
+  "fields": {
+    "user": 4,
+    "name": "Holiday Pot",
+    "portfolio_type": "pot",
+    "risk_level": "none",
+    "provider": "Lloyds",
+    "initial_value": "939.00",
+    "start_date": "2024-01-01",
+    "current_value": "939.00",
+    "year_start_value": "939.00",
+    "owner_name": "Family",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-16T23:51:14.380Z",
+    "updated_at": "2026-01-16T23:55:40.703Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 7,
+  "fields": {
+    "user": 4,
+    "name": "Kiaan's Monthly Account",
+    "portfolio_type": "pot",
+    "risk_level": "none",
+    "provider": "Lloyds",
+    "initial_value": "158.00",
+    "start_date": "2024-01-01",
+    "current_value": "158.00",
+    "year_start_value": "158.00",
+    "owner_name": "Kiaan",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-16T23:51:14.382Z",
+    "updated_at": "2026-01-16T23:55:40.707Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 8,
+  "fields": {
+    "user": 4,
+    "name": "House Expenses Pot",
+    "portfolio_type": "pot",
+    "risk_level": "none",
+    "provider": "Lloyds",
+    "initial_value": "103.00",
+    "start_date": "2024-01-01",
+    "current_value": "103.00",
+    "year_start_value": "103.00",
+    "owner_name": "Family",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-16T23:51:14.383Z",
+    "updated_at": "2026-01-16T23:55:40.705Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 9,
+  "fields": {
+    "user": 4,
+    "name": "eToro Shares",
+    "portfolio_type": "gia",
+    "risk_level": "5",
+    "provider": "",
+    "initial_value": "0.00",
+    "start_date": "2026-01-17",
+    "current_value": "1328.96",
+    "year_start_value": "1328.96",
+    "owner_name": "",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-17T00:43:40.919Z",
+    "updated_at": "2026-01-17T00:43:40.919Z"
+  }
+},
+{
+  "model": "finance.portfolio",
+  "pk": 10,
+  "fields": {
+    "user": 4,
+    "name": "Freetrade Shares",
+    "portfolio_type": "gia",
+    "risk_level": "5",
+    "provider": "",
+    "initial_value": "0.00",
+    "start_date": "2026-01-17",
+    "current_value": "1200.00",
+    "year_start_value": "1200.00",
+    "owner_name": "",
+    "notes": "",
+    "is_active": true,
+    "created_at": "2026-01-17T00:43:40.927Z",
+    "updated_at": "2026-01-17T00:43:40.927Z"
+  }
+},
+{
+  "model": "finance.investment",
+  "pk": 1,
+  "fields": {
+    "name": "Money Farm - Us",
+    "symbol": "",
+    "type": "etf",
+    "quantity": "1.00000000",
+    "purchase_price": "15000.00",
+    "current_price": "15800.00",
+    "purchase_date": "2023-01-01",
+    "user": 1,
+    "account": 4,
+    "notes": "",
+    "created_at": "2026-01-11T23:47:02.647Z",
+    "updated_at": "2026-01-11T23:47:02.647Z"
+  }
+},
+{
+  "model": "finance.investment",
+  "pk": 2,
+  "fields": {
+    "name": "Money Farm JISA - Kiaan",
+    "symbol": "",
+    "type": "etf",
+    "quantity": "1.00000000",
+    "purchase_price": "3500.00",
+    "current_price": "3700.00",
+    "purchase_date": "2023-01-01",
+    "user": 1,
+    "account": 4,
+    "notes": "",
+    "created_at": "2026-01-11T23:47:02.648Z",
+    "updated_at": "2026-01-11T23:47:02.648Z"
+  }
+},
+{
+  "model": "finance.investment",
+  "pk": 3,
+  "fields": {
+    "name": "Stocks & Shares ISA",
+    "symbol": "",
+    "type": "stock",
+    "quantity": "1.00000000",
+    "purchase_price": "8000.00",
+    "current_price": "8500.00",
+    "purchase_date": "2023-01-01",
+    "user": 1,
+    "account": 4,
+    "notes": "",
+    "created_at": "2026-01-11T23:47:02.649Z",
+    "updated_at": "2026-01-11T23:47:02.649Z"
+  }
+},
+{
+  "model": "finance.investment",
+  "pk": 4,
+  "fields": {
+    "name": "SC Fund India",
+    "symbol": "",
+    "type": "mutual_fund",
+    "quantity": "1.00000000",
+    "purchase_price": "5000.00",
+    "current_price": "5200.00",
+    "purchase_date": "2023-01-01",
+    "user": 1,
+    "account": 4,
+    "notes": "",
+    "created_at": "2026-01-11T23:47:02.651Z",
+    "updated_at": "2026-01-11T23:47:02.651Z"
+  }
+},
+{
+  "model": "finance.investment",
+  "pk": 5,
+  "fields": {
+    "name": "India SCB Investment",
+    "symbol": "",
+    "type": "bond",
+    "quantity": "1.00000000",
+    "purchase_price": "2400.00",
+    "current_price": "2400.00",
+    "purchase_date": "2023-01-01",
+    "user": 1,
+    "account": 4,
+    "notes": "Up to 2031",
+    "created_at": "2026-01-11T23:47:02.652Z",
+    "updated_at": "2026-01-11T23:47:02.652Z"
+  }
+},
+{
+  "model": "finance.investment",
+  "pk": 6,
+  "fields": {
+    "name": "India Property - LKO",
+    "symbol": "",
+    "type": "real_estate",
+    "quantity": "1.00000000",
+    "purchase_price": "25000.00",
+    "current_price": "28000.00",
+    "purchase_date": "2023-01-01",
+    "user": 1,
+    "account": 4,
+    "notes": "",
+    "created_at": "2026-01-11T23:47:02.653Z",
+    "updated_at": "2026-01-11T23:47:02.653Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 1,
+  "fields": {
+    "name": "Emergency Fund",
+    "target_amount": "15000.00",
+    "current_amount": "8000.00",
+    "target_date": null,
+    "user": 1,
+    "is_completed": false,
+    "created_at": "2026-01-11T23:47:02.654Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 2,
+  "fields": {
+    "name": "Holiday Fund 2026",
+    "target_amount": "5000.00",
+    "current_amount": "2500.00",
+    "target_date": "2026-12-31",
+    "user": 1,
+    "is_completed": false,
+    "created_at": "2026-01-11T23:47:02.655Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 3,
+  "fields": {
+    "name": "Kiaan's Education",
+    "target_amount": "50000.00",
+    "current_amount": "3700.00",
+    "target_date": null,
+    "user": 1,
+    "is_completed": false,
+    "created_at": "2026-01-11T23:47:02.656Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 4,
+  "fields": {
+    "name": "House Renovation",
+    "target_amount": "20000.00",
+    "current_amount": "4000.00",
+    "target_date": null,
+    "user": 1,
+    "is_completed": false,
+    "created_at": "2026-01-11T23:47:02.657Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 5,
+  "fields": {
+    "name": "New Car Fund",
+    "target_amount": "25000.00",
+    "current_amount": "0.00",
+    "target_date": null,
+    "user": 1,
+    "is_completed": false,
+    "created_at": "2026-01-11T23:47:02.658Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 6,
+  "fields": {
+    "name": "Emergency Fund",
+    "target_amount": "24000.00",
+    "current_amount": "22500.00",
+    "target_date": "2026-06-01",
+    "user": 4,
+    "is_completed": false,
+    "created_at": "2026-01-17T00:45:37.326Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 7,
+  "fields": {
+    "name": "Buy Investment Property",
+    "target_amount": "20000.00",
+    "current_amount": "0.00",
+    "target_date": "2026-05-01",
+    "user": 4,
+    "is_completed": false,
+    "created_at": "2026-01-17T00:45:37.334Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 8,
+  "fields": {
+    "name": "Pay off LKO Mortgage",
+    "target_amount": "40000.00",
+    "current_amount": "0.00",
+    "target_date": "2030-01-01",
+    "user": 4,
+    "is_completed": false,
+    "created_at": "2026-01-17T00:45:37.339Z"
+  }
+},
+{
+  "model": "finance.savingsgoal",
+  "pk": 9,
+  "fields": {
+    "name": "Pay off UK Mortgage",
+    "target_amount": "220000.00",
+    "current_amount": "0.00",
+    "target_date": "2040-01-01",
+    "user": 4,
+    "is_completed": false,
+    "created_at": "2026-01-17T00:45:37.344Z"
+  }
+},
+{
+  "model": "finance.housebudget",
+  "pk": 2,
+  "fields": {
+    "user": 4,
+    "name": "House Budget Template",
+    "month": null,
+    "year": null,
+    "is_template": true,
+    "primary_salary": "4600.00",
+    "secondary_income": "0.00",
+    "other_income": "0.00",
+    "partner_name": "Krati",
+    "partner_contribution": "0.00",
+    "notes": "",
+    "created_at": "2026-01-16T21:08:53.196Z",
+    "updated_at": "2026-01-16T22:11:44.955Z"
+  }
+}
+]
