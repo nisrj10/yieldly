@@ -221,6 +221,7 @@ class Portfolio(models.Model):
         ('gia', 'General Investment'),
         ('savings', 'Savings Account'),
         ('emergency', 'Emergency Fund'),
+        ('pot', 'Pot'),
         ('other', 'Other'),
     ]
 

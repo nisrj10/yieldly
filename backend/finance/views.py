@@ -651,17 +651,33 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         # Group by type
         investments = portfolios.filter(portfolio_type__in=['isa', 'jisa', 'pension', 'gia'])
         savings = portfolios.filter(portfolio_type__in=['savings', 'emergency'])
+        pots = portfolios.filter(portfolio_type='pot')
 
+        # Calculate totals
         total_investments = sum(p.current_value for p in investments)
         total_savings = sum(p.current_value for p in savings)
-        total_net_worth = total_investments + total_savings
+        total_pots = sum(p.current_value for p in pots)
+
+        # Separate Kiaan's portfolios from "my" net worth
+        kiaan_portfolios = portfolios.filter(owner_name__icontains='kiaan')
+        kiaan_net_worth = sum(p.current_value for p in kiaan_portfolios)
+
+        # My net worth excludes Kiaan's portfolios
+        my_net_worth = total_investments + total_savings + total_pots - kiaan_net_worth
+
+        # Total family net worth includes everyone
+        total_net_worth = total_investments + total_savings + total_pots
 
         return Response({
             'total_net_worth': total_net_worth,
+            'my_net_worth': my_net_worth,
+            'kiaan_net_worth': kiaan_net_worth,
             'total_investments': total_investments,
             'total_savings': total_savings,
+            'total_pots': total_pots,
             'investments': PortfolioSerializer(investments, many=True).data,
             'savings': PortfolioSerializer(savings, many=True).data,
+            'pots': PortfolioSerializer(pots, many=True).data,
         })
 
 

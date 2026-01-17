@@ -40,10 +40,14 @@ interface Portfolio {
 
 interface PortfolioSummary {
   total_net_worth: number;
+  my_net_worth: number;
+  kiaan_net_worth: number;
   total_investments: number;
   total_savings: number;
+  total_pots: number;
   investments: Portfolio[];
   savings: Portfolio[];
+  pots: Portfolio[];
 }
 
 const PORTFOLIO_TYPES = [
@@ -53,6 +57,7 @@ const PORTFOLIO_TYPES = [
   { value: 'gia', label: 'General Investment', icon: TrendingUp },
   { value: 'savings', label: 'Savings Account', icon: PiggyBank },
   { value: 'emergency', label: 'Emergency Fund', icon: Shield },
+  { value: 'pot', label: 'Pot', icon: Wallet },
   { value: 'other', label: 'Other', icon: Wallet },
 ];
 
@@ -322,18 +327,22 @@ export default function Investments() {
 
       {/* Net Worth Summary */}
       {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="card bg-gradient-to-br from-primary-500 to-primary-700 text-white">
-            <p className="text-sm opacity-80">Total Net Worth</p>
-            <p className="text-3xl font-bold">{formatCurrency(summary.total_net_worth)}</p>
+            <p className="text-sm opacity-80">My Net Worth</p>
+            <p className="text-2xl font-bold">{formatCurrency(summary.my_net_worth)}</p>
+          </div>
+          <div className="card bg-gradient-to-br from-green-500 to-green-700 text-white">
+            <p className="text-sm opacity-80">Kiaan's Net Worth</p>
+            <p className="text-2xl font-bold">{formatCurrency(summary.kiaan_net_worth)}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Total Investments</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.total_investments)}</p>
+            <p className="text-sm text-gray-600">Investments</p>
+            <p className="text-xl font-bold text-gray-900">{formatCurrency(summary.total_investments)}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Total Savings</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.total_savings)}</p>
+            <p className="text-sm text-gray-600">Savings & Pots</p>
+            <p className="text-xl font-bold text-gray-900">{formatCurrency(summary.total_savings + summary.total_pots)}</p>
           </div>
         </div>
       )}
@@ -378,8 +387,28 @@ export default function Investments() {
         </div>
       )}
 
+      {/* Pots Section */}
+      {summary && summary.pots.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Wallet className="text-amber-600" size={24} />
+            <h2 className="text-xl font-semibold text-gray-900">Pots</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {summary.pots.map((portfolio) => (
+              <PortfolioCard
+                key={portfolio.id}
+                portfolio={portfolio}
+                onEdit={() => openEditModal(portfolio)}
+                onUpdateValue={() => openUpdateModal(portfolio)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Empty State */}
-      {summary && summary.investments.length === 0 && summary.savings.length === 0 && (
+      {summary && summary.investments.length === 0 && summary.savings.length === 0 && summary.pots.length === 0 && (
         <div className="card text-center py-12">
           <Briefcase size={48} className="mx-auto text-gray-300 mb-4" />
           <p className="text-gray-500 mb-4">No portfolios tracked yet</p>
