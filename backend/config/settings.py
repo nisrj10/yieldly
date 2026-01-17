@@ -3,6 +3,10 @@ from pathlib import Path
 from datetime import timedelta
 import dj_database_url
 
+# Load .env file for local development
+from dotenv import load_dotenv
+load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
