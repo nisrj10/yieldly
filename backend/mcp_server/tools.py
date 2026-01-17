@@ -420,6 +420,102 @@ def get_financial_health_check() -> dict:
     }
 
 
+def get_transactions_by_category(category: str, months: int = 1, limit: int = MAX_LIST_ITEMS) -> dict:
+    """
+    Get transactions for a specific category. ~200 tokens for typical response.
+    Common categories: Groceries, Dining, Transport, Shopping, Bills, Entertainment
+    """
+    months = min(months, MAX_MONTHS)
+    users = _get_household_users()
+    now = timezone.now().date()
+
+    # Calculate start date
+    total_months = now.year * 12 + now.month - (months - 1)
+    start_year = (total_months - 1) // 12
+    start_month = (total_months - 1) % 12 + 1
+    start_date = date(start_year, start_month, 1)
+
+    # Query transactions with category filter (case-insensitive)
+    txns = Transaction.objects.filter(
+        user__in=users,
+        date__gte=start_date,
+        date__lte=now,
+        category__name__icontains=category
+    ).select_related('category').order_by('-date')
+
+    total = sum(float(t.amount) for t in txns)
+
+    result = []
+    for t in txns[:limit]:
+        result.append({
+            'date': t.date.isoformat(),
+            'amount': _round(t.amount),
+            'description': (t.description or '')[:40],
+            'category': t.category.name if t.category else 'Unknown',
+        })
+
+    return {
+        'category': category,
+        'period': f"{start_date.isoformat()} to {now.isoformat()}",
+        'total': _round(total),
+        'count': txns.count(),
+        'transactions': result,
+        'limited': len(result) == limit,
+    }
+
+
+def get_spending_by_category(months: int = 1) -> dict:
+    """
+    Get spending breakdown by category. ~300 tokens for typical response.
+    """
+    months = min(months, MAX_MONTHS)
+    users = _get_household_users()
+    now = timezone.now().date()
+
+    # Calculate start date
+    total_months = now.year * 12 + now.month - (months - 1)
+    start_year = (total_months - 1) // 12
+    start_month = (total_months - 1) % 12 + 1
+    start_date = date(start_year, start_month, 1)
+
+    # Get all expense transactions grouped by category
+    txns = Transaction.objects.filter(
+        user__in=users,
+        type='expense',
+        date__gte=start_date,
+        date__lte=now,
+    ).select_related('category')
+
+    # Group by category
+    by_category = {}
+    total = 0
+    for t in txns:
+        cat_name = t.category.name if t.category else 'Uncategorized'
+        if cat_name not in by_category:
+            by_category[cat_name] = {'total': 0, 'count': 0}
+        by_category[cat_name]['total'] += float(t.amount)
+        by_category[cat_name]['count'] += 1
+        total += float(t.amount)
+
+    # Sort by total and format
+    sorted_cats = sorted(by_category.items(), key=lambda x: x[1]['total'], reverse=True)
+    result = []
+    for cat_name, data in sorted_cats[:MAX_LIST_ITEMS]:
+        pct = (data['total'] / total * 100) if total > 0 else 0
+        result.append({
+            'category': cat_name,
+            'total': _round(data['total']),
+            'count': data['count'],
+            'pct': _round(pct, 1),
+        })
+
+    return {
+        'period': f"{start_date.isoformat()} to {now.isoformat()}",
+        'total_spending': _round(total),
+        'categories': result,
+    }
+
+
 # ============================================================
 # TOOL REGISTRY
 # ============================================================
@@ -487,5 +583,21 @@ TOOLS = {
         'function': get_financial_health_check,
         'description': 'Quick health analysis with score and insights. ~250 tokens.',
         'parameters': {},
+    },
+    'get_transactions_by_category': {
+        'function': get_transactions_by_category,
+        'description': 'Get transactions for a category (Groceries, Dining, Transport, etc). ~200 tokens.',
+        'parameters': {
+            'category': {'type': 'string', 'description': 'Category name (partial match)', 'required': True},
+            'months': {'type': 'integer', 'description': 'Months to look back (default 1, max 6)', 'default': 1},
+            'limit': {'type': 'integer', 'description': 'Max transactions (default 10)', 'default': 10},
+        },
+    },
+    'get_spending_by_category': {
+        'function': get_spending_by_category,
+        'description': 'Get spending breakdown by all categories. ~300 tokens.',
+        'parameters': {
+            'months': {'type': 'integer', 'description': 'Months to look back (default 1, max 6)', 'default': 1},
+        },
     },
 }

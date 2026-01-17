@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import get_user_model
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
 from datetime import timedelta, datetime
 import secrets
@@ -23,6 +25,18 @@ from .serializers import (
 from finance.models import Transaction, Account, Category
 
 User = get_user_model()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    """
+    Get CSRF token for the frontend.
+    Sets the csrftoken cookie and returns the token value.
+    """
+    token = get_token(request)
+    return Response({'csrfToken': token})
 
 
 class RegisterView(generics.CreateAPIView):

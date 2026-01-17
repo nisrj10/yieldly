@@ -1,5 +1,48 @@
 # Yiedly MCP - Usage Guidelines for Claude
 
+## Quick Questions Reference
+
+Use these exact phrases for instant answers:
+
+| You Ask | Tool to Use | Response |
+|---------|-------------|----------|
+| "net worth" / "how much do I have" | `get_financial_summary` | Family, yours, Kiaan's totals |
+| "emergency fund" | `get_financial_summary` | Amount + months covered |
+| "am I on track" / "financial health" | `get_financial_health_check` | Score + insights + warnings |
+| "goals" / "savings progress" | `get_savings_goals` | All goals with progress % |
+| "investments" / "portfolios" | `get_portfolios` | All portfolios with gains |
+| "budget" / "monthly budget" | `get_house_budget(summary_only=true)` | Income vs expenses vs savings |
+| "spending this month" | `get_monthly_spending(months=1)` | Income, expenses, savings rate |
+| "spent on [category]" | `get_transactions_by_category` | Total + transaction list |
+| "update [portfolio] to [value]" | `update_portfolio_value` | Confirms change |
+| "add [amount] to [goal]" | `add_funds_to_goal` | New total + progress |
+
+### Quick Answers Cheatsheet
+
+```
+"How am I doing?"           → get_financial_health_check
+"What's my net worth?"      → get_financial_summary
+"Show my ISAs"              → get_portfolios
+"How much on groceries?"    → get_transactions_by_category(category="Groceries")
+"Where does my money go?"   → get_spending_by_category(months=1)
+"Am I saving enough?"       → get_monthly_spending(months=3)
+"Budget breakdown"          → get_house_budget
+"Goal progress"             → get_savings_goals
+```
+
+### Category Keywords
+
+For `get_transactions_by_category`, use these common categories:
+- `Groceries` - supermarket shopping
+- `Dining` - restaurants, takeaway
+- `Transport` - fuel, parking, Uber
+- `Shopping` - Amazon, retail
+- `Bills` - utilities, subscriptions
+- `Entertainment` - cinema, streaming
+- `Health` - pharmacy, fitness
+
+---
+
 ## Efficiency Rules
 
 This MCP server is designed with token efficiency in mind. Follow these guidelines to minimize context usage:
