@@ -296,16 +296,17 @@ def monthly_trends(request):
         last_day = calendar.monthrange(year, month)[1]
         month_end = date(year, month, last_day)
 
-        # Get actual income and expenses (excluding transfers/refunds from income)
+        # Get actual income and expenses (aggregated across household)
+        household_users = get_household_users(user)
         income = Transaction.objects.filter(
-            user=user, type='income',
+            user__in=household_users, type='income',
             date__gte=month_start, date__lte=month_end
         ).exclude(
             category__name__in=excluded_income_categories
         ).aggregate(Sum('amount'))['amount__sum'] or 0
 
         expenses = Transaction.objects.filter(
-            user=user, type='expense',
+            user__in=household_users, type='expense',
             date__gte=month_start, date__lte=month_end
         ).aggregate(Sum('amount'))['amount__sum'] or 0
 
@@ -775,9 +776,10 @@ def category_spending_breakdown(request):
         last_day = calendar.monthrange(year, month)[1]
         month_end = date(year, month, last_day)
 
-        # Get all transactions for this month
+        # Get all transactions for this month (aggregated across household)
+        household_users = get_household_users(user)
         transactions = Transaction.objects.filter(
-            user=user,
+            user__in=household_users,
             date__gte=month_start,
             date__lte=month_end
         )
