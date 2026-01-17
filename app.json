@@ -1,0 +1,20 @@
+{
+  "name": "Yiedly",
+  "description": "Personal finance tracking application",
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "SECRET_KEY": {
+      "generator": "secret"
+    },
+    "DEBUG": {
+      "value": "False"
+    }
+  }
+}

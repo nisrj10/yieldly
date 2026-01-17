@@ -12,6 +12,7 @@ import {
   Calendar,
   Link2,
   Home,
+  FileText,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -26,6 +27,7 @@ const navItems = [
   { path: '/monthly', icon: Calendar, label: 'Monthly Tracking' },
   { path: '/investments', icon: TrendingUp, label: 'Investments' },
   { path: '/goals', icon: Target, label: 'Goals' },
+  { path: '/reports', icon: FileText, label: 'Reports' },
   { path: '/integrations', icon: Link2, label: 'Integrations' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
