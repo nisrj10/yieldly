@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     # Local apps
     'accounts',
     'finance',
+    'mcp_server',
 ]
 
 MIDDLEWARE = [
