@@ -17,6 +17,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '.herokuapp.com',
+    'yiedly.nishant-raj.com',
 ]
 
 # Add custom domain if set
@@ -139,6 +140,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
     'http://localhost:5174',
     'http://127.0.0.1:5174',
+    'https://yiedly.nishant-raj.com',
 ]
 
 # Add production frontend URL if set
@@ -151,6 +153,12 @@ if not DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF trusted origins (required for Django 4.x)
+CSRF_TRUSTED_ORIGINS = [
+    'https://yiedly.nishant-raj.com',
+    'https://*.herokuapp.com',
+]
 
 # Security settings for production
 if not DEBUG:
