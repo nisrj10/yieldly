@@ -677,19 +677,23 @@ class PortfolioViewSet(viewsets.ModelViewSet):
         savings = portfolios.filter(portfolio_type__in=['savings', 'emergency'])
         pots = portfolios.filter(portfolio_type='pot')
 
-        # Calculate totals
-        total_investments = sum(p.current_value for p in investments)
-        total_savings = sum(p.current_value for p in savings)
-        total_pots = sum(p.current_value for p in pots)
+        # Calculate totals (GBP only for net worth calculations)
+        gbp_investments = [p for p in investments if not p.currency or p.currency == 'GBP']
+        gbp_savings = [p for p in savings if not p.currency or p.currency == 'GBP']
+        gbp_pots = [p for p in pots if not p.currency or p.currency == 'GBP']
 
-        # Separate Kiaan's portfolios from "my" net worth
-        kiaan_portfolios = portfolios.filter(owner_name__icontains='kiaan')
+        total_investments = sum(p.current_value for p in gbp_investments)
+        total_savings = sum(p.current_value for p in gbp_savings)
+        total_pots = sum(p.current_value for p in gbp_pots)
+
+        # Separate Kiaan's portfolios from "my" net worth (GBP only)
+        kiaan_portfolios = [p for p in portfolios if p.owner_name and 'kiaan' in p.owner_name.lower() and (not p.currency or p.currency == 'GBP')]
         kiaan_net_worth = sum(p.current_value for p in kiaan_portfolios)
 
-        # My net worth excludes Kiaan's portfolios
+        # My net worth excludes Kiaan's portfolios (GBP only)
         my_net_worth = total_investments + total_savings + total_pots - kiaan_net_worth
 
-        # Total family net worth includes everyone
+        # Total family net worth includes everyone (GBP only)
         total_net_worth = total_investments + total_savings + total_pots
 
         return Response({
