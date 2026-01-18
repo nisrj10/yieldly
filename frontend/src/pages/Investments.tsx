@@ -326,29 +326,54 @@ export default function Investments() {
 
       {/* Net Worth Summary */}
       {summary && (() => {
-        const sharesTotal = summary.investments
+        // Calculate totals by currency
+        const allPortfolios = [...summary.investments, ...summary.savings, ...summary.pots];
+        const gbpTotal = allPortfolios
+          .filter(p => !p.currency || p.currency === 'GBP')
+          .reduce((sum, p) => sum + Number(p.current_value), 0);
+        const inrTotal = allPortfolios
+          .filter(p => p.currency === 'INR')
+          .reduce((sum, p) => sum + Number(p.current_value), 0);
+
+        // GBP investments breakdown
+        const gbpInvestments = summary.investments.filter(p => !p.currency || p.currency === 'GBP');
+        const sharesTotal = gbpInvestments
           .filter(i => i.name.toLowerCase().includes('shares') || i.name.toLowerCase().includes('etoro') || i.name.toLowerCase().includes('freetrade'))
           .reduce((sum, acc) => sum + Number(acc.current_value), 0);
-        const isaTotal = summary.investments
+        const isaTotal = gbpInvestments
           .filter(i => i.portfolio_type === 'isa')
           .reduce((sum, acc) => sum + Number(acc.current_value), 0);
+        const gbpInvestmentsTotal = gbpInvestments.reduce((sum, p) => sum + Number(p.current_value), 0);
+
+        // INR investments
+        const inrInvestments = summary.investments.filter(p => p.currency === 'INR');
+        const inrInvestmentsTotal = inrInvestments.reduce((sum, p) => sum + Number(p.current_value), 0);
+
         return (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="card bg-gradient-to-br from-primary-500 to-primary-700 text-white">
-              <p className="text-sm opacity-80">My Net Worth</p>
-              <p className="text-2xl font-bold">{formatCurrency(summary.my_net_worth)}</p>
+              <p className="text-sm opacity-80">Net Worth (GBP)</p>
+              <p className="text-2xl font-bold">{formatCurrency(gbpTotal, 'GBP')}</p>
+              {inrTotal > 0 && (
+                <p className="text-sm opacity-80 mt-1">+ {formatCurrency(inrTotal, 'INR')}</p>
+              )}
             </div>
             <div className="card bg-gradient-to-br from-green-500 to-green-700 text-white">
               <p className="text-sm opacity-80">Kiaan's Net Worth</p>
               <p className="text-2xl font-bold">{formatCurrency(summary.kiaan_net_worth)}</p>
             </div>
             <div className="card">
-              <p className="text-sm text-gray-600">Investments</p>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(summary.total_investments)}</p>
-              <div className="flex gap-2 mt-2 text-xs">
+              <p className="text-sm text-gray-600">Investments (GBP)</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(gbpInvestmentsTotal, 'GBP')}</p>
+              <div className="flex flex-wrap gap-2 mt-2 text-xs">
                 <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">ISA: {formatCurrency(isaTotal)}</span>
                 <span className="bg-green-100 text-green-700 px-2 py-1 rounded">Shares: {formatCurrency(sharesTotal)}</span>
               </div>
+              {inrInvestmentsTotal > 0 && (
+                <div className="mt-2 pt-2 border-t border-gray-200">
+                  <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">INR: {formatCurrency(inrInvestmentsTotal, 'INR')}</span>
+                </div>
+              )}
             </div>
             <div className="card">
               <p className="text-sm text-gray-600">Savings & Pots</p>
