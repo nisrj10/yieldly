@@ -120,21 +120,25 @@ def get_portfolios(limit: int = MAX_LIST_ITEMS) -> dict:
     portfolios = Portfolio.objects.filter(
         user__in=users, is_active=True
     ).only(
-        'id', 'name', 'portfolio_type', 'owner_name', 'current_value', 'initial_value'
+        'id', 'name', 'portfolio_type', 'owner_name', 'current_value', 'initial_value', 'currency'
     ).order_by('-current_value')[:limit]
 
+    currency_symbols = {'GBP': '£', 'INR': '₹', 'USD': '$', 'EUR': '€'}
     result = []
     for p in portfolios:
         gain = 0
         if p.initial_value and p.initial_value > 0:
             gain = _round((float(p.current_value) - float(p.initial_value)) / float(p.initial_value) * 100, 1)
 
+        currency = getattr(p, 'currency', 'GBP') or 'GBP'
         result.append({
             'id': p.id,
             'name': p.name,
             'type': p.portfolio_type,
             'owner': p.owner_name or 'Family',
             'value': _round(p.current_value),
+            'currency': currency,
+            'symbol': currency_symbols.get(currency, '£'),
             'gain_pct': gain,
         })
 

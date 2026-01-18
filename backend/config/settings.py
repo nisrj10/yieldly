@@ -19,6 +19,7 @@ ALLOWED_HOSTS = [
     '.herokuapp.com',
     'yiedly.nishant-raj.com',
     'testserver',  # For Django test client
+    '192.168.86.20',  # Local network for iOS simulator
 ]
 
 # Add custom domain if set

@@ -234,6 +234,13 @@ class Portfolio(models.Model):
         ('none', 'N/A'),
     ]
 
+    CURRENCY_CHOICES = [
+        ('GBP', '£'),
+        ('INR', '₹'),
+        ('USD', '$'),
+        ('EUR', '€'),
+    ]
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -243,6 +250,7 @@ class Portfolio(models.Model):
     portfolio_type = models.CharField(max_length=20, choices=PORTFOLIO_TYPES)
     risk_level = models.CharField(max_length=10, choices=RISK_LEVELS, default='none')
     provider = models.CharField(max_length=100, blank=True)  # e.g., "Nutmeg", "Vanguard"
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='GBP')
 
     # Initial investment info
     initial_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
