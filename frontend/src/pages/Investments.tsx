@@ -22,6 +22,7 @@ interface Portfolio {
   risk_level: string;
   risk_level_display: string;
   provider: string;
+  currency: string;
   owner_name: string;
   initial_value: number;
   start_date: string;
@@ -115,7 +116,7 @@ function PortfolioCard({
       </div>
 
       {/* Current Value */}
-      <p className="text-3xl font-bold mb-4">{formatCurrency(portfolio.current_value)}</p>
+      <p className="text-3xl font-bold mb-4">{formatCurrency(portfolio.current_value, portfolio.currency || 'GBP')}</p>
 
       {/* Performance Stats */}
       {isInvestment ? (
@@ -619,7 +620,7 @@ export default function Investments() {
               <p className="text-gray-600 mb-4">{selectedPortfolio.name}</p>
 
               <div className="mb-6">
-                <label className="label">New Value (£)</label>
+                <label className="label">New Value ({selectedPortfolio.currency === 'INR' ? '₹' : selectedPortfolio.currency === 'USD' ? '$' : selectedPortfolio.currency === 'EUR' ? '€' : '£'})</label>
                 <input
                   type="number"
                   step="0.01"

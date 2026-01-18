@@ -299,7 +299,7 @@ class PortfolioSerializer(serializers.ModelSerializer):
         model = Portfolio
         fields = [
             'id', 'name', 'portfolio_type', 'portfolio_type_display',
-            'risk_level', 'risk_level_display', 'provider', 'owner_name',
+            'risk_level', 'risk_level_display', 'provider', 'currency', 'owner_name',
             'initial_value', 'start_date', 'current_value', 'year_start_value',
             'total_gain_loss', 'total_gain_loss_percent',
             'ytd_gain_loss', 'ytd_gain_loss_percent',
