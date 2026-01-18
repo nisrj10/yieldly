@@ -1,5 +1,14 @@
 export function formatCurrency(amount: number, currency: string = 'GBP') {
-  return new Intl.NumberFormat('en-GB', {
+  // Use correct locale for each currency's number formatting
+  const localeMap: Record<string, string> = {
+    'GBP': 'en-GB',
+    'INR': 'en-IN',  // Indian numbering: 16,50,000 (lakhs/crores)
+    'USD': 'en-US',
+    'EUR': 'de-DE',
+  };
+  const locale = localeMap[currency] || 'en-GB';
+
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: 0,
