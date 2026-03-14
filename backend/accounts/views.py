@@ -434,6 +434,18 @@ def snoop_import(request):
             # Use merchant name or description
             trans_description = merchant or description or 'Snoop Import'
 
+            # Dedup: skip if matching transaction exists
+            existing = Transaction.objects.filter(
+                user=request.user,
+                account=account,
+                amount=amount,
+                date=date,
+                description=trans_description,
+            ).exists()
+            if existing:
+                transactions_skipped += 1
+                continue
+
             # Create transaction
             Transaction.objects.create(
                 user=request.user,
