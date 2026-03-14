@@ -727,51 +727,38 @@ class PortfolioSnapshotViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def category_spending_breakdown(request):
-    """Get spending breakdown by smart categories (Groceries, Eating Out, etc.) for multiple months."""
+    """Get spending breakdown by category for multiple months, using DB categories."""
     user = request.user
     months_count = int(request.query_params.get('months', 4))
     include_transactions = request.query_params.get('include_transactions', 'false').lower() == 'true'
 
-    # Category keywords
-    CATEGORIES = {
-        'Groceries': {
-            'keywords': ['tesco', 'sainsbury', 'asda', 'marks & spencer', 'm&s', 'aldi', 'lidl', 'co-op', 'costco', 'morrisons', 'waitrose'],
-            'exclude': ['petrol', 'fuel', 'insurance', 'travel insurance', 'mobile', 'phone'],
-            'budget': 350,
-        },
-        'Eating Out': {
-            'keywords': ['starbucks', 'costa', 'mcdonald', 'burger', 'kfc', 'nando', 'pizza', 'domino', 'deliveroo', 'uber eats', 'just eat', 'restaurant', 'cafe', 'coffee', 'pub', 'grill', 'greggs', 'pret', 'subway', 'wagamama', 'gail', 'leon', 'itsu', 'bakery', 'kebab', 'frankie', 'benny', 'mowgli', 'zizzi', 'prezzo', 'ask italian'],
-            'exclude': ['village hotel', 'village gym'],
-            'budget': 150,
-        },
-        'Transport': {
-            'keywords': ['petrol', 'fuel', 'parking', 'train', 'bus', 'taxi', 'toll', 'car wash', 'national rail', 'trainline', 'tfl'],
-            'exclude': [],
-            'budget': 120,
-        },
-        'Health & Fitness': {
-            'keywords': ['pharmacy', 'boots', 'superdrug', 'dentist', 'doctor', 'hospital', 'gym', 'puregym', 'village gym', 'village hotel'],
-            'exclude': [],
-            'budget': 61,
-        },
-        'Shopping': {
-            'keywords': ['amazon', 'ebay', 'argos', 'john lewis', 'currys', 'next', 'primark', 'zara', 'h&m', 'asos', 'tk maxx'],
-            'exclude': ['amazon prime', 'prime video'],
-            'budget': 100,
-        },
-    }
+    household_users = get_household_users(user)
 
     # Get all user exclusions
     user_exclusions = set(
         CategoryExclusion.objects.filter(user=user).values_list('transaction_id', 'category')
     )
 
+    # Get all expense categories that have transactions for these users
+    expense_categories = (
+        Category.objects.filter(
+            transaction__user__in=household_users,
+            type='expense',
+        )
+        .exclude(name='Internal Transfers')
+        .distinct()
+        .order_by('name')
+    )
+
+    # Build budget lookup: category name -> monthly budget amount
+    budget_lookup = {}
+    for b in Budget.objects.filter(user=user, is_active=True, period='monthly'):
+        budget_lookup[b.category.name] = float(b.amount)
+
     now = timezone.now().date()
     results = []
 
     for i in range(months_count):
-        # Calculate month boundaries properly for any number of months back
-        # Use total months calculation to handle year boundaries correctly
         total_months = now.year * 12 + now.month - i
         year = (total_months - 1) // 12
         month = (total_months - 1) % 12 + 1
@@ -780,12 +767,13 @@ def category_spending_breakdown(request):
         last_day = calendar.monthrange(year, month)[1]
         month_end = date(year, month, last_day)
 
-        # Get all transactions for this month (aggregated across household)
-        household_users = get_household_users(user)
+        # Get expense transactions for this month
         transactions = Transaction.objects.filter(
             user__in=household_users,
             date__gte=month_start,
-            date__lte=month_end
+            date__lte=month_end,
+            type='expense',
+            category__in=expense_categories,
         )
 
         month_data = {
@@ -795,49 +783,39 @@ def category_spending_breakdown(request):
             'categories': {}
         }
 
-        for cat_name, cat_config in CATEGORIES.items():
+        for cat in expense_categories:
+            cat_txns = transactions.filter(category=cat)
             total = 0
             count = 0
             cat_transactions = []
 
-            for t in transactions:
-                desc = t.description.lower() if t.description else ''
+            for t in cat_txns:
                 amt = abs(float(t.amount))
+                is_user_excluded = (t.id, cat.name) in user_exclusions
 
-                # Skip large amounts (likely salary/transfers)
-                if amt > 2000:
-                    continue
+                if include_transactions:
+                    cat_transactions.append({
+                        'id': t.id,
+                        'description': t.description,
+                        'amount': amt,
+                        'date': t.date.isoformat(),
+                        'excluded': is_user_excluded,
+                    })
 
-                # Check if matches category keywords
-                matches = any(kw in desc for kw in cat_config['keywords'])
-                keyword_excluded = any(ex in desc for ex in cat_config['exclude'])
+                if not is_user_excluded:
+                    total += amt
+                    count += 1
 
-                if matches and not keyword_excluded:
-                    # Check if user has manually excluded this transaction
-                    is_user_excluded = (t.id, cat_name) in user_exclusions
-
-                    if include_transactions:
-                        cat_transactions.append({
-                            'id': t.id,
-                            'description': t.description,
-                            'amount': amt,
-                            'date': t.date.isoformat(),
-                            'excluded': is_user_excluded,
-                        })
-
-                    if not is_user_excluded:
-                        total += amt
-                        count += 1
-
-            month_data['categories'][cat_name] = {
+            budget = budget_lookup.get(cat.name, 0)
+            month_data['categories'][cat.name] = {
                 'total': round(total, 2),
                 'count': count,
-                'budget': cat_config['budget'],
-                'variance': round(cat_config['budget'] - total, 2),
+                'budget': budget,
+                'variance': round(budget - total, 2),
             }
 
             if include_transactions:
-                month_data['categories'][cat_name]['transactions'] = cat_transactions
+                month_data['categories'][cat.name]['transactions'] = cat_transactions
 
         results.append(month_data)
 
