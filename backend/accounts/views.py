@@ -369,19 +369,15 @@ def snoop_import(request):
     snoop_income_categories = ['Income', 'Salary', 'Internal Transfers']
 
     for cat_name in snoop_expense_categories:
-        cat, _ = Category.objects.get_or_create(
-            name=cat_name,
-            type='expense',
-            defaults={'user': request.user, 'is_default': False}
-        )
+        cat = Category.objects.filter(name=cat_name, type='expense').first()
+        if not cat:
+            cat = Category.objects.create(name=cat_name, type='expense', user=request.user, is_default=False)
         category_map[cat_name.lower()] = cat
 
     for cat_name in snoop_income_categories:
-        cat, _ = Category.objects.get_or_create(
-            name=cat_name,
-            type='income',
-            defaults={'user': request.user, 'is_default': False}
-        )
+        cat = Category.objects.filter(name=cat_name, type='income').first()
+        if not cat:
+            cat = Category.objects.create(name=cat_name, type='income', user=request.user, is_default=False)
         category_map[f"{cat_name.lower()}_income"] = cat
 
     # Default categories
