@@ -326,15 +326,24 @@ def snoop_import(request):
 
             # Create or get account
             full_name = f"{provider} - {acc_name}"
-            account, created = Account.objects.get_or_create(
-                user=request.user,
-                name=full_name,
-                defaults={
-                    'type': acc_type,
-                    'balance': Decimal('0'),
-                    'currency': 'GBP',
-                }
-            )
+            try:
+                account = Account.objects.filter(
+                    user=request.user,
+                    name=full_name,
+                ).first()
+                if account:
+                    created = False
+                else:
+                    account = Account.objects.create(
+                        user=request.user,
+                        name=full_name,
+                        type=acc_type,
+                        balance=Decimal('0'),
+                        currency='GBP',
+                    )
+                    created = True
+            except Exception:
+                continue
             account_cache[(provider, acc_name)] = account
             if created:
                 accounts_created.append(full_name)
