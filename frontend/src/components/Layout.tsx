@@ -13,6 +13,7 @@ import {
   Link2,
   Home,
   FileText,
+  HeartPulse,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -28,6 +29,7 @@ const navItems = [
   { path: '/investments', icon: TrendingUp, label: 'Investments' },
   { path: '/goals', icon: Target, label: 'Goals' },
   { path: '/reports', icon: FileText, label: 'Reports' },
+  { path: '/health', icon: HeartPulse, label: 'Health' },
   { path: '/integrations', icon: Link2, label: 'Integrations' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];

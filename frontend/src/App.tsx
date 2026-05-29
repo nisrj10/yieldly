@@ -12,6 +12,7 @@ import MonthlyTracking from './pages/MonthlyTracking';
 import Integrations from './pages/Integrations';
 import HouseBudget from './pages/HouseBudget';
 import Reports from './pages/Reports';
+import HealthTracking from './pages/HealthTracking';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -113,6 +114,14 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <Reports />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/health"
+        element={
+          <PrivateRoute>
+            <HealthTracking />
           </PrivateRoute>
         }
       />
