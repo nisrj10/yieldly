@@ -36,6 +36,7 @@ WHOOP_AUTH_URL = 'https://api.prod.whoop.com/oauth/oauth2/auth'
 WHOOP_TOKEN_URL = 'https://api.prod.whoop.com/oauth/oauth2/token'
 WHOOP_API_BASE_URL = 'https://api.prod.whoop.com/developer/v2'
 WHOOP_SCOPES = 'offline read:profile read:recovery read:cycles read:sleep read:workout'
+WHOOP_USER_AGENT = 'Yieldly/1.0 (+https://yiedly-backend-fcbb8734fb56.herokuapp.com)'
 
 
 def _app_base_url(request):
@@ -63,10 +64,22 @@ def _whoop_request(path, access_token, params=None):
         headers={
             'Authorization': f'Bearer {access_token}',
             'Accept': 'application/json',
+            'User-Agent': WHOOP_USER_AGENT,
         },
     )
     with urlopen(request, timeout=20) as response:
         return json.loads(response.read().decode('utf-8'))
+
+
+def _format_whoop_error(prefix, exc):
+    if isinstance(exc, HTTPError):
+        try:
+            detail = exc.read().decode('utf-8')
+        except Exception:
+            detail = ''
+        if detail:
+            return f'{prefix}: HTTP {exc.code}: {detail[:300]}'
+    return f'{prefix}: {exc}'
 
 
 def _whoop_paginated(path, access_token, params):
@@ -475,6 +488,7 @@ def whoop_callback(request):
             headers={
                 'Accept': 'application/json',
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': WHOOP_USER_AGENT,
             },
             method='POST',
         )
@@ -482,7 +496,7 @@ def whoop_callback(request):
             token_payload = json.loads(response.read().decode('utf-8'))
     except (HTTPError, URLError, TimeoutError) as exc:
         integration.status = 'error'
-        integration.sync_error = f'WHOOP token exchange failed: {exc}'
+        integration.sync_error = _format_whoop_error('WHOOP token exchange failed', exc)
         integration.save()
         return Response({'error': integration.sync_error}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -540,7 +554,7 @@ def whoop_sync(request):
         summary = _summarize_whoop_data(cycles, recoveries, sleeps)
     except Exception as exc:
         integration.status = 'error'
-        integration.sync_error = f'WHOOP sync failed: {exc}'
+        integration.sync_error = _format_whoop_error('WHOOP sync failed', exc)
         integration.save()
         return Response({'error': integration.sync_error}, status=status.HTTP_400_BAD_REQUEST)
 
