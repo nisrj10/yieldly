@@ -22,7 +22,7 @@ from decimal import Decimal
 from datetime import date, datetime
 from django.db.models import Sum
 from django.utils import timezone
-from accounts.models import User, Household
+from accounts.models import User, Household, AppIntegration
 from finance.models import (
     Portfolio, PortfolioSnapshot, SavingsGoal, HouseBudget,
     BudgetLineItem, Transaction
@@ -424,6 +424,77 @@ def get_financial_health_check() -> dict:
     }
 
 
+def _whoop_latest_metrics(summary: dict) -> dict:
+    latest = (summary or {}).get('latest') or {}
+    recovery = (latest.get('recovery') or {}).get('score') or {}
+    cycle = (latest.get('cycle') or {}).get('score') or {}
+    sleep = (latest.get('sleep') or {}).get('score') or {}
+    stage = sleep.get('stage_summary') or {}
+
+    return {
+        'recovery_score': _round(recovery.get('recovery_score'), 1),
+        'hrv_ms': _round(recovery.get('hrv_rmssd_milli'), 1),
+        'resting_hr': _round(recovery.get('resting_heart_rate'), 1),
+        'strain': _round(cycle.get('strain'), 1),
+        'avg_hr': _round(cycle.get('average_heart_rate'), 1),
+        'max_hr': _round(cycle.get('max_heart_rate'), 1),
+        'sleep_performance_pct': _round(sleep.get('sleep_performance_percentage'), 1),
+        'sleep_efficiency_pct': _round(sleep.get('sleep_efficiency_percentage'), 1),
+        'sleep_hours_in_bed': _round((stage.get('total_in_bed_time_milli') or 0) / 1000 / 60 / 60, 1),
+        'disturbances': stage.get('disturbance_count') or 0,
+    }
+
+
+def _whoop_guidance(latest: dict) -> list[str]:
+    guidance = []
+    recovery = latest.get('recovery_score', 0)
+    sleep = latest.get('sleep_performance_pct', 0)
+    strain = latest.get('strain', 0)
+
+    if recovery >= 70:
+        guidance.append('Recovery is strong; normal training and workload are reasonable.')
+    elif recovery >= 40:
+        guidance.append('Recovery is moderate; keep training controlled and avoid stacking stress late today.')
+    else:
+        guidance.append('Recovery is low; prioritise sleep, hydration, lighter movement, and fewer hard commitments.')
+
+    if sleep and sleep < 70:
+        guidance.append('Sleep performance is below target; protect an earlier bedtime tonight.')
+    if strain and strain >= 14:
+        guidance.append('Recent strain is high; avoid another high-strain day unless recovery is also strong.')
+
+    return guidance[:4]
+
+
+def get_whoop_health_summary(user_email: str = 'nisrj10@gmail.com') -> dict:
+    """
+    Get Nishant's synced WHOOP summary for morning check-ins.
+    Reads stored Yieldly integration data; does not call WHOOP directly.
+    """
+    integration = AppIntegration.objects.filter(
+        user__email=user_email,
+        provider='whoop',
+    ).first()
+
+    if not integration:
+        return {'status': 'disconnected', 'error': f'No WHOOP integration found for {user_email}'}
+
+    metadata = integration.metadata or {}
+    summary = metadata.get('summary') or {}
+    latest = _whoop_latest_metrics(summary)
+
+    return {
+        'status': integration.status,
+        'user': user_email,
+        'last_sync': integration.last_sync_at.isoformat() if integration.last_sync_at else None,
+        'latest': latest,
+        'periods': summary.get('periods') or {},
+        'averages': summary.get('averages') or {},
+        'records': summary.get('records') or {},
+        'guidance': _whoop_guidance(latest),
+    }
+
+
 def get_transactions_by_category(category: str, months: int = 1, limit: int = MAX_LIST_ITEMS) -> dict:
     """
     Get transactions for a specific category. ~200 tokens for typical response.
@@ -587,6 +658,13 @@ TOOLS = {
         'function': get_financial_health_check,
         'description': 'Quick health analysis with score and insights. ~250 tokens.',
         'parameters': {},
+    },
+    'get_whoop_health_summary': {
+        'function': get_whoop_health_summary,
+        'description': 'Get synced WHOOP health stats and morning guidance for Nishant.',
+        'parameters': {
+            'user_email': {'type': 'string', 'description': 'Yieldly user email (default nisrj10@gmail.com)', 'default': 'nisrj10@gmail.com'},
+        },
     },
     'get_transactions_by_category': {
         'function': get_transactions_by_category,

@@ -91,6 +91,7 @@ export const authApi = {
     api.post(`/auth/integrations/${id}/disconnect/`),
   connectWhoop: () => api.post('/auth/whoop/connect/'),
   syncWhoop: () => api.post('/auth/whoop/sync/'),
+  getWhoopHealth: () => api.get('/auth/whoop/health/'),
 
   // Snoop CSV Import
   importSnoopCSV: (file: File, accountId: number) => {

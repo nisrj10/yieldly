@@ -8,7 +8,8 @@ from django.middleware.csrf import get_token
 from django.shortcuts import redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
-from datetime import timedelta, datetime
+from django.utils.dateparse import parse_datetime
+from datetime import timedelta, datetime, timezone as dt_timezone
 import secrets
 import csv
 import io
@@ -71,6 +72,43 @@ def _whoop_request(path, access_token, params=None):
         return json.loads(response.read().decode('utf-8'))
 
 
+def _refresh_whoop_token_if_needed(integration):
+    """Refresh the WHOOP access token when it is expired or close to expiry."""
+    if not integration.refresh_token:
+        return
+
+    if integration.token_expires_at and integration.token_expires_at > timezone.now() + timedelta(minutes=5):
+        return
+
+    form = urlencode({
+        'grant_type': 'refresh_token',
+        'refresh_token': integration.refresh_token,
+        'client_id': os.environ.get('WHOOP_CLIENT_ID', ''),
+        'client_secret': os.environ.get('WHOOP_CLIENT_SECRET', ''),
+    }).encode('utf-8')
+
+    token_request = Request(
+        WHOOP_TOKEN_URL,
+        data=form,
+        headers={
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': WHOOP_USER_AGENT,
+        },
+        method='POST',
+    )
+
+    with urlopen(token_request, timeout=20) as response:
+        token_payload = json.loads(response.read().decode('utf-8'))
+
+    integration.access_token = token_payload.get('access_token', integration.access_token)
+    integration.refresh_token = token_payload.get('refresh_token', integration.refresh_token)
+    expires_in = token_payload.get('expires_in')
+    if expires_in:
+        integration.token_expires_at = timezone.now() + timedelta(seconds=int(expires_in))
+    integration.save(update_fields=['access_token', 'refresh_token', 'token_expires_at', 'updated_at'])
+
+
 def _format_whoop_error(prefix, exc):
     if isinstance(exc, HTTPError):
         try:
@@ -103,6 +141,84 @@ def _safe_average(values):
     return round(sum(values) / len(values), 1)
 
 
+def _parse_whoop_datetime(value):
+    if not value:
+        return None
+    parsed = parse_datetime(value)
+    if parsed and timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed, timezone=dt_timezone.utc)
+    return parsed
+
+
+def _record_date(record):
+    parsed = _parse_whoop_datetime(record.get('start') or record.get('created_at') or record.get('updated_at'))
+    return parsed.date() if parsed else None
+
+
+def _period_records(records, days):
+    cutoff = timezone.now().date() - timedelta(days=days - 1)
+    return [
+        item for item in records
+        if _record_date(item) and _record_date(item) >= cutoff
+    ]
+
+
+def _period_summary(cycles, recoveries, sleeps):
+    recovery_scores = [item['score'].get('recovery_score') for item in recoveries]
+    sleep_performance = [item['score'].get('sleep_performance_percentage') for item in sleeps]
+    sleep_durations = [
+        item['score'].get('stage_summary', {}).get('total_in_bed_time_milli')
+        for item in sleeps
+    ]
+    return {
+        'records': {
+            'cycles': len(cycles),
+            'recoveries': len(recoveries),
+            'sleeps': len(sleeps),
+        },
+        'averages': {
+            'strain': _safe_average([item['score'].get('strain') for item in cycles]),
+            'recovery_score': _safe_average(recovery_scores),
+            'hrv_rmssd_milli': _safe_average([
+                item['score'].get('hrv_rmssd_milli') for item in recoveries
+            ]),
+            'resting_heart_rate': _safe_average([
+                item['score'].get('resting_heart_rate') for item in recoveries
+            ]),
+            'sleep_performance_percentage': _safe_average(sleep_performance),
+            'sleep_hours_in_bed': _safe_average([
+                duration / 1000 / 60 / 60 for duration in sleep_durations if duration
+            ]),
+        },
+    }
+
+
+def _daily_trend(scored_cycles, scored_recoveries, scored_sleeps):
+    by_day = {}
+    for cycle in scored_cycles:
+        day = _record_date(cycle)
+        if day:
+            by_day.setdefault(day.isoformat(), {})['strain'] = cycle['score'].get('strain')
+    for recovery in scored_recoveries:
+        day = _record_date(recovery)
+        if day:
+            by_day.setdefault(day.isoformat(), {})['recovery_score'] = recovery['score'].get('recovery_score')
+            by_day[day.isoformat()]['hrv_rmssd_milli'] = recovery['score'].get('hrv_rmssd_milli')
+            by_day[day.isoformat()]['resting_heart_rate'] = recovery['score'].get('resting_heart_rate')
+    for sleep in scored_sleeps:
+        day = _record_date(sleep)
+        if day:
+            stage = sleep['score'].get('stage_summary', {})
+            by_day.setdefault(day.isoformat(), {})['sleep_performance_percentage'] = sleep['score'].get('sleep_performance_percentage')
+            duration = stage.get('total_in_bed_time_milli')
+            by_day[day.isoformat()]['sleep_hours_in_bed'] = round(duration / 1000 / 60 / 60, 1) if duration else None
+
+    return [
+        {'date': day, **metrics}
+        for day, metrics in sorted(by_day.items(), reverse=True)[:30]
+    ]
+
+
 def _summarize_whoop_data(cycles, recoveries, sleeps):
     scored_recoveries = [
         item for item in recoveries
@@ -127,6 +243,17 @@ def _summarize_whoop_data(cycles, recoveries, sleeps):
         item['score'].get('stage_summary', {}).get('total_in_bed_time_milli')
         for item in scored_sleeps
     ]
+
+    weekly = {
+        'cycles': _period_records(scored_cycles, 7),
+        'recoveries': _period_records(scored_recoveries, 7),
+        'sleeps': _period_records(scored_sleeps, 7),
+    }
+    monthly = {
+        'cycles': _period_records(scored_cycles, 30),
+        'recoveries': _period_records(scored_recoveries, 30),
+        'sleeps': _period_records(scored_sleeps, 30),
+    }
 
     return {
         'updated_at': timezone.now().isoformat(),
@@ -154,6 +281,12 @@ def _summarize_whoop_data(cycles, recoveries, sleeps):
             'cycle': scored_cycles[0] if scored_cycles else None,
             'sleep': scored_sleeps[0] if scored_sleeps else None,
         },
+        'periods': {
+            'daily': _period_summary(scored_cycles[:1], scored_recoveries[:1], scored_sleeps[:1]),
+            'weekly': _period_summary(weekly['cycles'], weekly['recoveries'], weekly['sleeps']),
+            'monthly': _period_summary(monthly['cycles'], monthly['recoveries'], monthly['sleeps']),
+        },
+        'trend': _daily_trend(scored_cycles, scored_recoveries, scored_sleeps),
     }
 
 
@@ -548,6 +681,7 @@ def whoop_sync(request):
         end = timezone.now().isoformat()
 
     try:
+        _refresh_whoop_token_if_needed(integration)
         cycles = _whoop_paginated('/cycle', integration.access_token, {'start': start, 'end': end})
         recoveries = _whoop_paginated('/recovery', integration.access_token, {'start': start, 'end': end})
         sleeps = _whoop_paginated('/activity/sleep', integration.access_token, {'start': start, 'end': end})
@@ -569,6 +703,30 @@ def whoop_sync(request):
     integration.save()
 
     return Response({'message': 'WHOOP sync completed', 'summary': summary})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def whoop_health_summary(request):
+    """Return the stored WHOOP summary used by the health dashboard."""
+    integration = AppIntegration.objects.filter(user=request.user, provider='whoop').first()
+    if not integration:
+        return Response({
+            'status': 'disconnected',
+            'is_configured': _whoop_credentials_configured(),
+            'summary': None,
+        })
+
+    metadata = integration.metadata or {}
+    return Response({
+        'status': integration.status,
+        'is_configured': _whoop_credentials_configured(),
+        'last_sync': integration.last_sync_at,
+        'sync_error': integration.sync_error,
+        'profile': metadata.get('profile'),
+        'summary': metadata.get('summary'),
+        'last_sync_range': metadata.get('last_sync_range'),
+    })
 
 
 @api_view(['POST'])
