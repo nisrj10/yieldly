@@ -93,7 +93,9 @@ export const authApi = {
   syncWhoop: () => api.post('/auth/whoop/sync/'),
   getWhoopHealth: () => api.get('/auth/whoop/health/'),
 
-  // Snoop CSV Import
+  // Snoop CSV Export Connector
+  connectSnoop: () => api.post('/auth/snoop/connect/'),
+  getSnoopStatus: () => api.get('/auth/snoop/status/'),
   importSnoopCSV: (file: File, accountId: number) => {
     const formData = new FormData();
     formData.append('file', file);

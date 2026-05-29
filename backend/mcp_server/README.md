@@ -12,6 +12,7 @@ This MCP (Model Context Protocol) server allows Claude to interact with your Yie
 - **get_monthly_spending** - Get monthly income, expenses, and savings data
 - **get_financial_health_check** - Get AI-powered financial health analysis
 - **get_whoop_health_summary** - Get synced WHOOP recovery, sleep, strain, and morning guidance
+- **get_snoop_import_summary** - Get Snoop connector/import status and setup guidance
 
 ### Write Tools
 - **update_portfolio_value** - Update a portfolio's current value
@@ -61,6 +62,7 @@ Once connected, you can ask Claude things like:
 - "Give me a financial health check"
 - "How did I recover this morning?"
 - "What should I do today based on my WHOOP stats?"
+- "When was Snoop last imported?"
 
 ## Security
 

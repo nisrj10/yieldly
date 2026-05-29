@@ -37,6 +37,8 @@ WHOOP_TOKEN_URL = 'https://api.prod.whoop.com/oauth/oauth2/token'
 WHOOP_API_BASE_URL = 'https://api.prod.whoop.com/developer/v2'
 WHOOP_SCOPES = 'offline read:profile read:recovery read:cycles read:sleep read:workout'
 WHOOP_USER_AGENT = 'Yieldly/1.0 (+https://yiedly-backend-fcbb8734fb56.herokuapp.com)'
+SNOOP_EXPORT_HELP_URL = 'https://snoopadmin.zendesk.com/hc/en-gb/articles/18255143766429-Can-I-export-my-transactions-from-Snoop'
+SNOOP_CONTACT_EMAIL = 'hello@snoop.app'
 
 
 def _app_base_url(request):
@@ -55,6 +57,20 @@ def _whoop_redirect_uri(request):
 
 def _whoop_credentials_configured():
     return bool(os.environ.get('WHOOP_CLIENT_ID') and os.environ.get('WHOOP_CLIENT_SECRET'))
+
+
+def _snoop_api_configured():
+    return bool(os.environ.get('SNOOP_API_BASE_URL') and os.environ.get('SNOOP_API_TOKEN'))
+
+
+def _snoop_export_instructions():
+    return [
+        'Open the Snoop app',
+        'Go to All transactions',
+        'Tap Export',
+        'Download the CSV file',
+        'Upload the CSV into Yieldly Integrations',
+    ]
 
 
 def _whoop_request(path, access_token, params=None):
@@ -570,12 +586,20 @@ class AppIntegrationViewSet(viewsets.ModelViewSet):
         integration = self.get_object()
 
         if integration.provider == 'snoop':
-            # Snoop API connection flow
-            # In production, this would redirect to Snoop OAuth
+            integration.status = 'pending'
+            integration.sync_error = ''
+            integration.metadata = {
+                **(integration.metadata or {}),
+                'connection_mode': 'csv_export',
+                'api_available': False,
+                'export_help_url': SNOOP_EXPORT_HELP_URL,
+                'setup_instructions': _snoop_export_instructions(),
+                'setup_started_at': timezone.now().isoformat(),
+            }
+            integration.save()
             return Response({
-                'message': 'Snoop connection initiated',
-                'auth_url': 'https://app.snoop.com/connect',  # Placeholder
-                'instructions': 'Follow the link to connect your Snoop account',
+                'message': 'Snoop export connector ready',
+                **_build_snoop_status(integration),
             })
         elif integration.provider == 'plaid':
             return Response({
@@ -643,12 +667,21 @@ def available_integrations(request):
         {
             'provider': 'snoop',
             'name': 'Snoop',
-            'description': 'Import your transactions from Snoop app export (CSV)',
+            'description': 'Import your transactions from Snoop app export',
             'logo': '/integrations/snoop.png',
-            'features': ['Monthly CSV import', 'UK bank transactions', 'Easy export from Snoop app'],
+            'features': ['CSV export connector', 'UK bank transactions', 'Duplicate-safe imports'],
             'type': 'file_upload',
+            'status': snoop_imports.status if snoop_imports else 'disconnected',
+            'connection_mode': 'csv_export',
+            'api_configured': _snoop_api_configured(),
+            'api_available': False,
+            'api_note': 'Snoop does not expose a public consumer OAuth/API connection for third-party apps. Yieldly supports the official Snoop CSV export path.',
+            'export_help_url': SNOOP_EXPORT_HELP_URL,
+            'setup_instructions': _snoop_export_instructions(),
             'last_import': snoop_imports.last_sync_at if snoop_imports else None,
             'import_count': snoop_imports.metadata.get('total_imported', 0) if snoop_imports and snoop_imports.metadata else 0,
+            'last_import_count': snoop_imports.metadata.get('last_import_count', 0) if snoop_imports and snoop_imports.metadata else 0,
+            'last_import_skipped': snoop_imports.metadata.get('last_import_skipped', 0) if snoop_imports and snoop_imports.metadata else 0,
         },
         {
             'provider': 'manual',
@@ -825,6 +858,58 @@ def whoop_health(request):
     if not integration:
         return Response({'connected': False, 'status': 'disconnected'}, status=status.HTTP_200_OK)
     return Response(_build_whoop_health_summary(integration))
+
+
+def _build_snoop_status(integration):
+    metadata = integration.metadata if integration and integration.metadata else {}
+    return {
+        'connected': bool(integration and integration.status == 'connected'),
+        'status': integration.status if integration else 'disconnected',
+        'connection_mode': 'csv_export',
+        'api_configured': _snoop_api_configured(),
+        'api_available': False,
+        'api_note': 'Snoop does not expose a public consumer OAuth/API connection for third-party apps. Yieldly supports the official Snoop CSV export path.',
+        'export_help_url': SNOOP_EXPORT_HELP_URL,
+        'contact_email': SNOOP_CONTACT_EMAIL,
+        'setup_instructions': _snoop_export_instructions(),
+        'last_import': integration.last_sync_at if integration else None,
+        'total_imported': metadata.get('total_imported', 0),
+        'last_import_count': metadata.get('last_import_count', 0),
+        'last_import_skipped': metadata.get('last_import_skipped', 0),
+        'last_accounts_created': metadata.get('last_accounts_created', []),
+    }
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def snoop_connect(request):
+    """Create or update the Snoop connector setup state."""
+    integration, _ = AppIntegration.objects.update_or_create(
+        user=request.user,
+        provider='snoop',
+        defaults={
+            'status': 'pending',
+            'sync_error': '',
+        },
+    )
+    integration.metadata = {
+        **(integration.metadata or {}),
+        'connection_mode': 'csv_export',
+        'api_available': False,
+        'export_help_url': SNOOP_EXPORT_HELP_URL,
+        'setup_instructions': _snoop_export_instructions(),
+        'setup_started_at': timezone.now().isoformat(),
+    }
+    integration.save()
+    return Response(_build_snoop_status(integration), status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def snoop_status(request):
+    """Return Snoop connector status and import history."""
+    integration = AppIntegration.objects.filter(user=request.user, provider='snoop').first()
+    return Response(_build_snoop_status(integration), status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -1051,8 +1136,15 @@ def snoop_import(request):
     )
     current_total = integration.metadata.get('total_imported', 0) if integration.metadata else 0
     integration.metadata = {
+        **(integration.metadata or {}),
+        'connection_mode': 'csv_export',
+        'api_available': False,
+        'export_help_url': SNOOP_EXPORT_HELP_URL,
         'total_imported': current_total + transactions_created,
         'last_import_count': transactions_created,
+        'last_import_skipped': transactions_skipped,
+        'last_accounts_created': accounts_created,
+        'last_imported_at': timezone.now().isoformat(),
     }
     integration.save()
 

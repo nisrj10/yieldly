@@ -12,6 +12,7 @@ import {
   HeartPulse,
   ExternalLink,
   RefreshCw,
+  Info,
 } from 'lucide-react';
 
 interface SnoopIntegration {
@@ -21,9 +22,17 @@ interface SnoopIntegration {
   features: string[];
   type: string;
   status?: string;
+  connection_mode?: string;
+  api_available?: boolean;
+  api_configured?: boolean;
+  api_note?: string;
+  export_help_url?: string;
+  setup_instructions?: string[];
   last_import: string | null;
   last_sync?: string | null;
   import_count: number;
+  last_import_count?: number;
+  last_import_skipped?: number;
   is_configured?: boolean;
   sync_error?: string;
   summary?: {
@@ -62,6 +71,8 @@ export default function Integrations() {
   const [importError, setImportError] = useState<string | null>(null);
   const [whoopLoading, setWhoopLoading] = useState(false);
   const [whoopError, setWhoopError] = useState<string | null>(null);
+  const [snoopLoading, setSnoopLoading] = useState(false);
+  const [snoopError, setSnoopError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -139,6 +150,21 @@ export default function Integrations() {
       setWhoopError(apiError.response?.data?.error || 'Failed to sync WHOOP data');
     } finally {
       setWhoopLoading(false);
+    }
+  };
+
+  const handleSnoopConnect = async () => {
+    setSnoopLoading(true);
+    setSnoopError(null);
+    try {
+      await authApi.connectSnoop();
+      await loadData();
+      openImportModal();
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { error?: string } } };
+      setSnoopError(apiError.response?.data?.error || 'Failed to set up Snoop connector');
+    } finally {
+      setSnoopLoading(false);
     }
   };
 
@@ -273,15 +299,19 @@ export default function Integrations() {
             </div>
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <h3 className="text-xl font-bold text-gray-900">Snoop</h3>
               <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                Recommended for UK
+                CSV export connector
+              </span>
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                Public API unavailable
               </span>
             </div>
             <p className="text-gray-600 mb-3">
-              Export your transactions from the Snoop app and import them here.
-              Go to Snoop → Settings → Export Data → Download CSV.
+              Snoop does not currently publish a consumer OAuth/API connection for third-party
+              apps, so Yieldly uses the official Snoop CSV export path and tracks import status
+              through its own API.
             </p>
             <ul className="flex flex-wrap gap-3 text-sm text-gray-600">
               {snoopIntegration?.features.map((feature, idx) => (
@@ -298,14 +328,47 @@ export default function Integrations() {
                 ({snoopIntegration.import_count} transactions total)
               </p>
             )}
+            {snoopIntegration?.last_import_count !== undefined && snoopIntegration.last_import_count > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
+                <div className="bg-white/70 rounded-lg p-2">
+                  <p className="text-xs text-gray-500">Last import</p>
+                  <p className="font-semibold text-gray-900">{snoopIntegration.last_import_count}</p>
+                </div>
+                <div className="bg-white/70 rounded-lg p-2">
+                  <p className="text-xs text-gray-500">Skipped</p>
+                  <p className="font-semibold text-gray-900">{snoopIntegration.last_import_skipped ?? 0}</p>
+                </div>
+                <div className="bg-white/70 rounded-lg p-2">
+                  <p className="text-xs text-gray-500">Mode</p>
+                  <p className="font-semibold text-gray-900">CSV</p>
+                </div>
+              </div>
+            )}
+            {snoopIntegration?.api_note && (
+              <p className="text-sm text-purple-800 mt-3 flex items-start gap-2">
+                <Info size={15} className="mt-0.5 flex-shrink-0" />
+                {snoopIntegration.api_note}
+              </p>
+            )}
+            {snoopError && (
+              <p className="text-sm text-red-600 mt-3">{snoopError}</p>
+            )}
           </div>
-          <div className="flex-shrink-0">
+          <div className="flex flex-col gap-2 flex-shrink-0">
             <button
-              onClick={openImportModal}
+              onClick={handleSnoopConnect}
+              disabled={snoopLoading}
               className="btn-primary flex items-center gap-2"
             >
+              <ExternalLink size={18} />
+              Set up Snoop
+            </button>
+            <button
+              onClick={openImportModal}
+              className="btn-secondary flex items-center justify-center gap-2"
+            >
               <Upload size={18} />
-              Import CSV
+              Import Export
             </button>
           </div>
         </div>
@@ -359,12 +422,22 @@ export default function Integrations() {
             <h4 className="font-medium text-blue-900">How to export from Snoop</h4>
             <ol className="text-sm text-blue-800 mt-2 space-y-1 list-decimal list-inside">
               <li>Open the Snoop app on your phone</li>
-              <li>Go to Settings (gear icon)</li>
-              <li>Tap "Export Data" or "Download Transactions"</li>
+              <li>Go to All transactions</li>
+              <li>Tap Export</li>
               <li>Select the date range (monthly recommended)</li>
               <li>Download the CSV file</li>
               <li>Upload it here and select the account</li>
             </ol>
+            {snoopIntegration?.export_help_url && (
+              <a
+                href={snoopIntegration.export_help_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm font-medium text-blue-900 mt-3"
+              >
+                Open Snoop export help <ExternalLink size={14} />
+              </a>
+            )}
           </div>
         </div>
       </div>

@@ -23,7 +23,7 @@ from datetime import date, datetime
 from django.db.models import Sum
 from django.utils import timezone
 from accounts.models import User, Household, AppIntegration
-from accounts.views import _build_whoop_health_summary
+from accounts.views import _build_snoop_status, _build_whoop_health_summary
 from finance.models import (
     Portfolio, PortfolioSnapshot, SavingsGoal, HouseBudget,
     BudgetLineItem, Transaction
@@ -148,6 +148,30 @@ def get_whoop_health_summary(user_email: str = '') -> dict:
         'weekly': periods.get('week'),
         'monthly': periods.get('month'),
         'guidance': summary.get('guidance', []),
+    }
+
+
+def get_snoop_import_summary(user_email: str = '') -> dict:
+    """
+    Get Snoop connector/import status for finance planning context.
+    Snoop currently uses CSV export/import rather than a public consumer OAuth API.
+    """
+    query = AppIntegration.objects.filter(provider='snoop')
+    if user_email:
+        query = query.filter(user__email=user_email)
+    integration = query.order_by('-last_sync_at', '-updated_at').first()
+    status = _build_snoop_status(integration)
+    return {
+        'connected': status.get('connected'),
+        'status': status.get('status'),
+        'connection_mode': status.get('connection_mode'),
+        'api_available': status.get('api_available'),
+        'api_note': status.get('api_note'),
+        'last_import': status.get('last_import'),
+        'total_imported': status.get('total_imported'),
+        'last_import_count': status.get('last_import_count'),
+        'last_import_skipped': status.get('last_import_skipped'),
+        'setup_instructions': status.get('setup_instructions'),
     }
 
 
@@ -572,6 +596,13 @@ TOOLS = {
     'get_whoop_health_summary': {
         'function': get_whoop_health_summary,
         'description': 'Latest WHOOP health summary for daily guidance and morning check-ins.',
+        'parameters': {
+            'user_email': {'type': 'string', 'description': 'Optional user email filter', 'default': ''},
+        },
+    },
+    'get_snoop_import_summary': {
+        'function': get_snoop_import_summary,
+        'description': 'Snoop connector/import status and setup guidance.',
         'parameters': {
             'user_email': {'type': 'string', 'description': 'Optional user email filter', 'default': ''},
         },
