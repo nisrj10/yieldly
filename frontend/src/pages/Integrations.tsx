@@ -9,6 +9,9 @@ import {
   Clock,
   Smartphone,
   X,
+  HeartPulse,
+  ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 
 interface SnoopIntegration {
@@ -17,8 +20,27 @@ interface SnoopIntegration {
   description: string;
   features: string[];
   type: string;
+  status?: string;
   last_import: string | null;
+  last_sync?: string | null;
   import_count: number;
+  is_configured?: boolean;
+  sync_error?: string;
+  summary?: {
+    records?: {
+      cycles?: number;
+      recoveries?: number;
+      sleeps?: number;
+    };
+    averages?: {
+      recovery_score?: number | null;
+      hrv_rmssd_milli?: number | null;
+      resting_heart_rate?: number | null;
+      strain?: number | null;
+      sleep_performance_percentage?: number | null;
+      sleep_hours_in_bed?: number | null;
+    };
+  } | null;
 }
 
 interface ImportResult {
@@ -38,6 +60,8 @@ export default function Integrations() {
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [whoopLoading, setWhoopLoading] = useState(false);
+  const [whoopError, setWhoopError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -82,10 +106,39 @@ export default function Integrations() {
       const response = await authApi.importSnoopCSV(selectedFile, selectedAccountId);
       setImportResult(response.data);
       loadData(); // Refresh data
-    } catch (error: any) {
-      setImportError(error.response?.data?.error || 'Failed to import file');
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { error?: string } } };
+      setImportError(apiError.response?.data?.error || 'Failed to import file');
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleWhoopConnect = async () => {
+    setWhoopLoading(true);
+    setWhoopError(null);
+    try {
+      const response = await authApi.connectWhoop();
+      window.location.href = response.data.auth_url;
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { error?: string } } };
+      setWhoopError(apiError.response?.data?.error || 'Failed to start WHOOP connection');
+    } finally {
+      setWhoopLoading(false);
+    }
+  };
+
+  const handleWhoopSync = async () => {
+    setWhoopLoading(true);
+    setWhoopError(null);
+    try {
+      await authApi.syncWhoop();
+      await loadData();
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { error?: string } } };
+      setWhoopError(apiError.response?.data?.error || 'Failed to sync WHOOP data');
+    } finally {
+      setWhoopLoading(false);
     }
   };
 
@@ -113,12 +166,102 @@ export default function Integrations() {
   }
 
   const snoopIntegration = integrations.find(i => i.provider === 'snoop');
+  const whoopIntegration = integrations.find(i => i.provider === 'whoop');
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Import Transactions</h1>
-        <p className="text-gray-600">Import your bank transactions from Snoop or CSV files</p>
+        <h1 className="text-2xl font-bold text-gray-900">Integrations</h1>
+        <p className="text-gray-600">Connect health data and import bank transactions</p>
+      </div>
+
+      {/* Whoop OAuth Card */}
+      <div className="card bg-gradient-to-r from-rose-50 to-orange-50 border-rose-200">
+        <div className="flex flex-col md:flex-row md:items-center gap-6">
+          <div className="flex-shrink-0">
+            <div className="w-20 h-20 bg-white rounded-2xl shadow-sm flex items-center justify-center">
+              <HeartPulse className="text-rose-600" size={40} />
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h3 className="text-xl font-bold text-gray-900">Whoop</h3>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                whoopIntegration?.status === 'connected'
+                  ? 'bg-green-100 text-green-700'
+                  : whoopIntegration?.is_configured
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-gray-100 text-gray-700'
+              }`}>
+                {whoopIntegration?.status === 'connected'
+                  ? 'Connected'
+                  : whoopIntegration?.is_configured
+                    ? 'Ready to connect'
+                    : 'API credentials needed'}
+              </span>
+            </div>
+            <p className="text-gray-600 mb-3">
+              Sync recovery, HRV, resting heart rate, sleep performance, strain, and workout
+              records from the WHOOP API.
+            </p>
+            <ul className="flex flex-wrap gap-3 text-sm text-gray-600">
+              {whoopIntegration?.features.map((feature, idx) => (
+                <li key={idx} className="flex items-center gap-1">
+                  <Check size={14} className="text-green-500" />
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            {whoopIntegration?.last_sync && (
+              <p className="text-sm text-gray-500 mt-3 flex items-center gap-1">
+                <Clock size={14} />
+                Last sync: {new Date(whoopIntegration.last_sync).toLocaleString()}
+              </p>
+            )}
+            {whoopIntegration?.summary?.averages && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+                {[
+                  ['Recovery', whoopIntegration.summary.averages.recovery_score],
+                  ['HRV', whoopIntegration.summary.averages.hrv_rmssd_milli],
+                  ['RHR', whoopIntegration.summary.averages.resting_heart_rate],
+                  ['Strain', whoopIntegration.summary.averages.strain],
+                ].map(([label, value]) => (
+                  <div key={label} className="bg-white/70 rounded-lg p-2">
+                    <p className="text-xs text-gray-500">{label}</p>
+                    <p className="font-semibold text-gray-900">{value ?? '-'}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {whoopError && (
+              <p className="text-sm text-red-600 mt-3">{whoopError}</p>
+            )}
+            {whoopIntegration?.sync_error && (
+              <p className="text-sm text-red-600 mt-3">{whoopIntegration.sync_error}</p>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            {whoopIntegration?.status === 'connected' ? (
+              <button
+                onClick={handleWhoopSync}
+                disabled={whoopLoading}
+                className="btn-primary flex items-center justify-center gap-2"
+              >
+                <RefreshCw size={18} className={whoopLoading ? 'animate-spin' : ''} />
+                Sync Whoop
+              </button>
+            ) : (
+              <button
+                onClick={handleWhoopConnect}
+                disabled={whoopLoading || !whoopIntegration?.is_configured}
+                className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <ExternalLink size={18} />
+                Connect Whoop
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Snoop Import Card */}

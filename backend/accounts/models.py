@@ -69,6 +69,7 @@ class AppIntegration(models.Model):
     """Third-party app integrations (Snoop, Plaid, etc.)."""
     PROVIDER_CHOICES = [
         ('snoop', 'Snoop'),
+        ('whoop', 'Whoop'),
         ('plaid', 'Plaid'),
         ('truelayer', 'TrueLayer'),
         ('manual', 'Manual Import'),

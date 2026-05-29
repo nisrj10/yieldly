@@ -8,6 +8,9 @@ from .views import (
     accept_invitation,
     pending_invitations,
     available_integrations,
+    whoop_callback,
+    whoop_connect,
+    whoop_sync,
     snoop_import,
     get_csrf_token,
 )
@@ -25,6 +28,9 @@ urlpatterns = [
     path('accept-invitation/', accept_invitation, name='accept-invitation'),
     path('pending-invitations/', pending_invitations, name='pending-invitations'),
     path('available-integrations/', available_integrations, name='available-integrations'),
+    path('whoop/connect/', whoop_connect, name='whoop-connect'),
+    path('whoop/callback/', whoop_callback, name='whoop-callback'),
+    path('whoop/sync/', whoop_sync, name='whoop-sync'),
     path('snoop/import/', snoop_import, name='snoop-import'),
     path('', include(router.urls)),
 ]
