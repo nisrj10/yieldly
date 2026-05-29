@@ -1,354 +1,416 @@
+import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
-  ArrowDownRight,
-  ArrowRight,
+  AlertCircle,
   Bed,
-  Brain,
+  CalendarDays,
   CheckCircle2,
-  Dumbbell,
+  Clock,
   HeartPulse,
-  Moon,
-  TrendingDown,
-  TrendingUp,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
   Zap,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { authApi } from '../api/client';
 
-interface MetricSnapshot {
-  title: string;
-  icon: ComponentType<{ size?: number; className?: string }>;
-  april: string;
-  may: string;
-  verdict: string;
-  status: 'improved' | 'watch' | 'mixed';
+interface PeriodSummary {
+  days: number;
+  avg_recovery: number | null;
+  avg_hrv: number | null;
+  avg_rhr: number | null;
+  avg_strain: number | null;
+  avg_sleep_performance: number | null;
+  avg_sleep_hours: number | null;
 }
 
-const metrics: MetricSnapshot[] = [
-  {
-    title: 'Sleep',
-    icon: Moon,
-    april:
-      'Roughly 7.2-7.4 hours per night on average. Sleep performance mostly 70-80%, with a few very short nights and a couple of 10+ hour catch-ups.',
-    may:
-      'More short nights in the 3-6 hour range and fewer full catch-up nights. Sleep performance is more often in the 50-70% range.',
-    verdict:
-      'More volatility and a bit more sleep debt in May than April, despite a couple of strong recent nights.',
-    status: 'watch',
-  },
-  {
-    title: 'Recovery',
-    icon: HeartPulse,
-    april:
-      'HRV was often in the mid-20s to low-30s, with resting heart rate frequently in the 70s early in the month. Several red days, a good cluster of yellows, and some high greens after catch-up sleep.',
-    may:
-      'HRV is generally slightly higher and more stable, from high-20s to mid-30s with some 40+ days. Resting heart rate is overall lower, more often in the low-60s. More mid/high greens late in the month.',
-    verdict:
-      'Autonomic trend is better in May, but recovery still spikes into red when sleep is crushed or stress is heavy.',
-    status: 'improved',
-  },
-  {
-    title: 'Strain',
-    icon: Dumbbell,
-    april:
-      'Lots of moderate-to-high strain, with repeated days in the 11-17 range and many days above 14 strain. Very few genuinely easy days.',
-    may:
-      'Overall average strain is lower. Many days sit in the 5-10 range, with periodic high days around 12-14+.',
-    verdict:
-      'You backed off total load in May, which is likely helping HRV and resting heart rate despite patchy sleep.',
-    status: 'improved',
-  },
-  {
-    title: 'Stress',
-    icon: Brain,
-    april:
-      'Several very high stress days with 3-7+ hours in high stress and long blocks of medium stress, especially in the first half of April.',
-    may:
-      'Still some big stress days, including May 10, 12, 14-16, 18, 21, and 25, but also more lighter or moderate days.',
-    verdict:
-      'Stress load is still a major driver, but it is a bit less extreme than the first half of April.',
-    status: 'mixed',
-  },
-];
+interface WhoopDay {
+  date?: string;
+  recovery_score?: number | null;
+  hrv_rmssd_milli?: number | null;
+  resting_heart_rate?: number | null;
+  strain?: number | null;
+  average_heart_rate?: number | null;
+  max_heart_rate?: number | null;
+  sleep_performance_percentage?: number | null;
+  sleep_efficiency_percentage?: number | null;
+  sleep_hours_in_bed?: number | null;
+  awake_hours?: number | null;
+  rem_hours?: number | null;
+  light_hours?: number | null;
+  deep_hours?: number | null;
+  disturbance_count?: number | null;
+  sleep_cycle_count?: number | null;
+  respiratory_rate?: number | null;
+  spo2_percentage?: number | null;
+  skin_temp_celsius?: number | null;
+}
 
-const patterns = [
-  {
-    title: 'Short sleep costs recovery',
-    detail:
-      'Nights at or below 4-5 hours line up with red or low-yellow recoveries the next morning, especially when the day still includes training, heavy walking, or high work stress.',
-    icon: Bed,
-  },
-  {
-    title: 'Catch-up sleep works, but late',
-    detail:
-      '8.5-10+ hour nights are almost always followed by greener recoveries and better HRV. The issue is that they usually arrive after sleep debt has already built up.',
-    icon: CheckCircle2,
-  },
-  {
-    title: 'Alternating load helps',
-    detail:
-      'April stacked more 14+ strain days on already-stressed days. May has more alternation with easier days, which your recovery data seems to like.',
-    icon: Activity,
-  },
-];
+interface WhoopHealth {
+  connected: boolean;
+  status: string;
+  account?: string | null;
+  last_sync?: string | null;
+  updated_at?: string | null;
+  sync_error?: string;
+  records?: {
+    cycles?: number;
+    recoveries?: number;
+    sleeps?: number;
+  };
+  latest?: WhoopDay;
+  periods?: {
+    day?: PeriodSummary | null;
+    week?: PeriodSummary | null;
+    month?: PeriodSummary | null;
+  };
+  trend?: WhoopDay[];
+  recent_days?: WhoopDay[];
+  guidance?: string[];
+}
 
-const whoopData = [
-  {
-    metric: 'Sleep duration',
-    april: '7.2-7.4 hrs/night average',
-    may: 'More 3-6 hr nights',
-    signal: 'May is carrying more sleep debt',
-  },
-  {
-    metric: 'Sleep performance',
-    april: 'Mostly 70-80%',
-    may: 'More often 50-70%',
-    signal: 'Sleep quality and consistency dropped',
-  },
-  {
-    metric: 'HRV',
-    april: 'Often mid-20s to low-30s',
-    may: 'High-20s to mid-30s, some 40+ days',
-    signal: 'Autonomic recovery improved',
-  },
-  {
-    metric: 'Resting heart rate',
-    april: 'Frequently in the 70s early month',
-    may: 'More often low-60s',
-    signal: 'Cardiovascular baseline improved',
-  },
-  {
-    metric: 'Recovery colors',
-    april: 'Several reds: 8%, 14%, 24%, 31%; yellows; greens up to 80-94%',
-    may: 'Reds still present: 9-33%; stronger late-month greens: 73%, 81%, 85%, 95%',
-    signal: 'Better upside in May, still vulnerable after poor sleep',
-  },
-  {
-    metric: 'Strain',
-    april: 'Repeated 11-17 days; many above 14 including 16.8, 16.0, 15.2',
-    may: 'More days in 5-10 range; periodic 12-14.2 and 14+ days',
-    signal: 'Training/load management improved',
-  },
-  {
-    metric: 'Non-activity stress',
-    april: 'Several days with 3-7+ hrs high stress, especially Apr 1-3, 6, 9-12',
-    may: 'Big stress days on May 10, 12, 14-16, 18, 21, 25',
-    signal: 'Still high, but less extreme than early April',
-  },
-];
-
-const statusStyles = {
-  improved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  watch: 'bg-amber-50 text-amber-700 border-amber-200',
-  mixed: 'bg-sky-50 text-sky-700 border-sky-200',
+const formatNumber = (value?: number | null, suffix = '', digits = 0) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '--';
+  return `${Number(value).toFixed(digits)}${suffix}`;
 };
 
-const statusLabels = {
-  improved: 'Improving',
-  watch: 'Watch',
-  mixed: 'Mixed',
+const formatDate = (value?: string | null) => {
+  if (!value) return 'Not synced yet';
+  return new Date(value).toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
+
+const formatDay = (value?: string) => {
+  if (!value) return '--';
+  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+  });
+};
+
+const recoveryTone = (score?: number | null) => {
+  if (score === null || score === undefined) return 'border-gray-200 bg-gray-50 text-gray-700';
+  if (score >= 67) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (score >= 34) return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-rose-200 bg-rose-50 text-rose-700';
+};
+
+const periodCards = [
+  { key: 'day', label: 'Daily', sublabel: 'Latest day' },
+  { key: 'week', label: 'Weekly', sublabel: 'Last 7 days' },
+  { key: 'month', label: 'Monthly', sublabel: 'Last 30 days' },
+] as const;
 
 export default function HealthTracking() {
+  const [health, setHealth] = useState<WhoopHealth | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadHealth = async () => {
+    setError(null);
+    try {
+      const response = await authApi.getWhoopHealth();
+      setHealth(response.data);
+    } catch (err) {
+      setError('Could not load WHOOP health data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHealth();
+  }, []);
+
+  const syncWhoop = async () => {
+    setSyncing(true);
+    setError(null);
+    try {
+      await authApi.syncWhoop();
+      await loadHealth();
+    } catch {
+      setError('WHOOP sync failed. Check the integration status.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const latest = health?.latest || {};
+  const trend = useMemo(
+    () => (health?.trend || []).map((day) => ({
+      ...day,
+      label: formatDay(day.date),
+      recovery: day.recovery_score ?? undefined,
+      sleep: day.sleep_performance_percentage ?? undefined,
+      strain: day.strain ?? undefined,
+    })),
+    [health]
+  );
+
+  const sleepStages = [
+    { name: 'REM', hours: latest.rem_hours || 0, fill: '#0ea5e9' },
+    { name: 'Light', hours: latest.light_hours || 0, fill: '#6366f1' },
+    { name: 'Deep', hours: latest.deep_hours || 0, fill: '#10b981' },
+    { name: 'Awake', hours: latest.awake_hours || 0, fill: '#f97316' },
+  ].filter((stage) => stage.hours > 0);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[360px] items-center justify-center">
+        <RefreshCw className="animate-spin text-primary-600" size={28} />
+      </div>
+    );
+  }
+
+  if (!health?.connected) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Health</h1>
+          <p className="text-gray-600">WHOOP health dashboard</p>
+        </div>
+        <section className="card border-amber-200 bg-amber-50">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-1 text-amber-600" size={22} />
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">WHOOP is not connected</h2>
+              <p className="mt-1 text-sm text-gray-700">
+                Connect WHOOP from Integrations, then sync to populate daily, weekly, and monthly stats.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-600">
-              <HeartPulse className="text-white" size={22} />
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-rose-600">
+              <HeartPulse className="text-white" size={23} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Health Tracking</h1>
-              <p className="text-gray-600">Whoop analysis: April vs May month-to-date</p>
+              <h1 className="text-2xl font-bold text-gray-900">Health</h1>
+              <p className="text-gray-600">
+                WHOOP daily, weekly, and monthly recovery signals
+              </p>
             </div>
           </div>
         </div>
-        <div className="card border-rose-100 bg-rose-50 lg:max-w-md">
-          <p className="text-sm font-semibold text-rose-900">Main lever for next month</p>
-          <p className="mt-1 text-sm text-rose-800">
-            Cap work-late nights at 2 per week, keep those nights at 5.5+ hours of sleep,
-            and place at least one 8+ hour night within 48 hours after each.
-          </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600">
+            Last sync: <span className="font-medium text-gray-900">{formatDate(health.last_sync)}</span>
+          </div>
+          <button
+            onClick={syncWhoop}
+            disabled={syncing}
+            className="btn btn-primary"
+          >
+            <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+            Sync
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <div className="card border-amber-200 bg-amber-50">
-          <div className="flex items-center gap-2 text-amber-700">
-            <Moon size={18} />
-            <span className="text-sm font-medium">Sleep</span>
-          </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">More volatile</p>
-          <p className="mt-1 text-sm text-gray-600">May has more 3-6 hour nights.</p>
+      {(error || health.sync_error) && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error || health.sync_error}
         </div>
-        <div className="card border-emerald-200 bg-emerald-50">
-          <div className="flex items-center gap-2 text-emerald-700">
-            <TrendingUp size={18} />
-            <span className="text-sm font-medium">Recovery</span>
-          </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">Better trend</p>
-          <p className="mt-1 text-sm text-gray-600">HRV up a bit, RHR lower.</p>
-        </div>
-        <div className="card border-blue-200 bg-blue-50">
-          <div className="flex items-center gap-2 text-blue-700">
-            <TrendingDown size={18} />
-            <span className="text-sm font-medium">Strain</span>
-          </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">More controlled</p>
-          <p className="mt-1 text-sm text-gray-600">Fewer stacked high-load days.</p>
-        </div>
-        <div className="card border-slate-200 bg-slate-50">
-          <div className="flex items-center gap-2 text-slate-700">
-            <Zap size={18} />
-            <span className="text-sm font-medium">Stress</span>
-          </div>
-          <p className="mt-2 text-2xl font-bold text-gray-900">Still high</p>
-          <p className="mt-1 text-sm text-gray-600">Less extreme, still a driver.</p>
-        </div>
-      </div>
+      )}
 
-      <section className="card">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section className={`card border ${recoveryTone(latest.recovery_score)}`}>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Whoop Data Snapshot</h2>
-            <p className="text-sm text-gray-600">
-              Last full month April compared with May month-to-date.
+            <p className="text-sm font-medium opacity-80">{formatDay(latest.date)}</p>
+            <h2 className="mt-1 text-3xl font-bold text-gray-900">
+              Recovery {formatNumber(latest.recovery_score, '%')}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-700">
+              {(health.guidance || ['Keep routines steady today.'])[0]}
             </p>
           </div>
-          <span className="w-fit rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-            Source: Whoop summary
-          </span>
-        </div>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[780px] text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left">
-                <th className="py-3 pr-4 font-medium text-gray-500">Metric</th>
-                <th className="px-4 py-3 font-medium text-gray-500">April</th>
-                <th className="px-4 py-3 font-medium text-gray-500">May so far</th>
-                <th className="py-3 pl-4 font-medium text-gray-500">Signal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {whoopData.map((row) => (
-                <tr key={row.metric} className="border-b border-gray-100 last:border-0">
-                  <td className="py-4 pr-4 font-semibold text-gray-900">{row.metric}</td>
-                  <td className="px-4 py-4 leading-6 text-gray-600">{row.april}</td>
-                  <td className="px-4 py-4 leading-6 text-gray-600">{row.may}</td>
-                  <td className="py-4 pl-4 leading-6 text-gray-700">{row.signal}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MiniMetric icon={Zap} label="Strain" value={formatNumber(latest.strain, '', 1)} />
+            <MiniMetric icon={Bed} label="Sleep" value={formatNumber(latest.sleep_performance_percentage, '%')} />
+            <MiniMetric icon={HeartPulse} label="HRV" value={formatNumber(latest.hrv_rmssd_milli, ' ms')} />
+            <MiniMetric icon={Activity} label="RHR" value={formatNumber(latest.resting_heart_rate, ' bpm')} />
+          </div>
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {periodCards.map((card) => {
+          const period = health.periods?.[card.key];
           return (
-            <section key={metric.title} className="card">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900">
-                    <Icon className="text-white" size={20} />
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-900">{metric.title}</h2>
+            <section key={card.key} className="card">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{card.label}</h2>
+                  <p className="text-sm text-gray-500">{card.sublabel}</p>
                 </div>
-                <span className={`rounded-full border px-2 py-1 text-xs font-medium ${statusStyles[metric.status]}`}>
-                  {statusLabels[metric.status]}
-                </span>
+                <CalendarDays className="text-gray-400" size={20} />
               </div>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-start">
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <p className="text-sm font-semibold text-gray-900">April</p>
-                  <p className="mt-2 text-sm leading-6 text-gray-600">{metric.april}</p>
-                </div>
-                <div className="hidden pt-12 text-gray-300 md:block">
-                  <ArrowRight size={22} />
-                </div>
-                <div className="rounded-lg border border-gray-200 bg-white p-4">
-                  <p className="text-sm font-semibold text-gray-900">May so far</p>
-                  <p className="mt-2 text-sm leading-6 text-gray-600">{metric.may}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-lg bg-gray-900 p-4 text-white">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-300">Net</p>
-                <p className="mt-1 text-sm leading-6">{metric.verdict}</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <Stat label="Recovery" value={formatNumber(period?.avg_recovery, '%')} />
+                <Stat label="Sleep" value={formatNumber(period?.avg_sleep_performance, '%')} />
+                <Stat label="Sleep time" value={formatNumber(period?.avg_sleep_hours, 'h', 1)} />
+                <Stat label="Strain" value={formatNumber(period?.avg_strain, '', 1)} />
+                <Stat label="HRV" value={formatNumber(period?.avg_hrv, ' ms')} />
+                <Stat label="RHR" value={formatNumber(period?.avg_rhr, ' bpm')} />
               </div>
             </section>
           );
         })}
       </div>
 
-      <section className="card">
-        <h2 className="text-lg font-semibold text-gray-900">Behavior Patterns</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {patterns.map((pattern) => {
-            const Icon = pattern.icon;
-            return (
-              <div key={pattern.title} className="rounded-lg border border-gray-200 bg-white p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-                    <Icon size={18} />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">{pattern.title}</h3>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-gray-600">{pattern.detail}</p>
-              </div>
-            );
-          })}
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_0.8fr]">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">30-Day Trend</h2>
+              <p className="text-sm text-gray-500">Recovery, sleep performance, and strain</p>
+            </div>
+            <Clock className="text-gray-400" size={20} />
+          </div>
+          <div className="mt-4 h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Area type="monotone" dataKey="recovery" name="Recovery" stroke="#10b981" fill="#d1fae5" />
+                <Area type="monotone" dataKey="sleep" name="Sleep" stroke="#6366f1" fill="#e0e7ff" />
+                <Area type="monotone" dataKey="strain" name="Strain" stroke="#f97316" fill="#ffedd5" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900">Latest Sleep</h2>
+          <p className="text-sm text-gray-500">Stage composition</p>
+          <div className="mt-4 h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={sleepStages}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="hours" name="Hours" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[0.9fr_1.2fr]">
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900">Bottom Line</h2>
-          <div className="mt-4 space-y-3">
-            <div className="rounded-lg border border-gray-200 p-4">
-              <p className="font-medium text-gray-900">April</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                Higher strain, higher non-activity stress, slightly better average sleep time,
-                but worse autonomic stress early in the month with HRV down and RHR up.
-              </p>
-            </div>
-            <div className="rounded-lg border border-gray-200 p-4">
-              <p className="font-medium text-gray-900">May month-to-date</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                Strain is more controlled and autonomic markers have improved, but frequent
-                short nights mean recovery still crashes when sleep goes off the cliff.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card border-emerald-200 bg-emerald-50">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
-              <CheckCircle2 size={20} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+              <Sparkles size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">4-Week Focus Goal</h2>
-              <p className="text-sm text-gray-600">Sleep floor + controlled training load</p>
+              <h2 className="text-lg font-semibold text-gray-900">Morning Guidance</h2>
+              <p className="text-sm text-gray-500">Generated from latest WHOOP signals</p>
             </div>
           </div>
           <div className="mt-4 space-y-3">
-            {[
-              'Maximum 2 work-late nights per week.',
-              'Minimum 5.5 hours sleep on work-late nights.',
-              'One 8+ hour recovery night within 48 hours after each late night.',
-              'Avoid 14+ strain days directly after red recovery mornings.',
-            ].map((item) => (
-              <div key={item} className="flex items-start gap-3 rounded-lg bg-white/70 p-3">
-                <ArrowDownRight className="mt-0.5 text-emerald-600" size={16} />
-                <p className="text-sm text-gray-700">{item}</p>
+            {(health.guidance || []).map((item) => (
+              <div key={item} className="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+                <CheckCircle2 className="mt-0.5 text-emerald-600" size={16} />
+                <p className="text-sm leading-6 text-gray-700">{item}</p>
               </div>
             ))}
           </div>
         </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Recent Days</h2>
+              <p className="text-sm text-gray-500">
+                {health.records?.cycles || 0} cycles, {health.records?.sleeps || 0} sleeps, {health.records?.recoveries || 0} recoveries stored
+              </p>
+            </div>
+            <ShieldCheck className="text-gray-400" size={20} />
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[680px] text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-left">
+                  <th className="py-3 pr-4 font-medium text-gray-500">Day</th>
+                  <th className="px-4 py-3 font-medium text-gray-500">Recovery</th>
+                  <th className="px-4 py-3 font-medium text-gray-500">Sleep</th>
+                  <th className="px-4 py-3 font-medium text-gray-500">Strain</th>
+                  <th className="px-4 py-3 font-medium text-gray-500">HRV</th>
+                  <th className="py-3 pl-4 font-medium text-gray-500">RHR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(health.recent_days || []).slice(0, 10).map((day) => (
+                  <tr key={day.date} className="border-b border-gray-100 last:border-0">
+                    <td className="py-3 pr-4 font-medium text-gray-900">{formatDay(day.date)}</td>
+                    <td className="px-4 py-3">{formatNumber(day.recovery_score, '%')}</td>
+                    <td className="px-4 py-3">{formatNumber(day.sleep_performance_percentage, '%')}</td>
+                    <td className="px-4 py-3">{formatNumber(day.strain, '', 1)}</td>
+                    <td className="px-4 py-3">{formatNumber(day.hrv_rmssd_milli, ' ms')}</td>
+                    <td className="py-3 pl-4">{formatNumber(day.resting_heart_rate, ' bpm')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
+    </div>
+  );
+}
+
+function MiniMetric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Zap;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border border-white/70 bg-white/70 p-3">
+      <div className="flex items-center gap-2 text-gray-500">
+        <Icon size={15} />
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <p className="mt-1 text-xl font-bold text-gray-900">{value}</p>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <p className="text-xs font-medium text-gray-500">{label}</p>
+      <p className="mt-1 text-lg font-bold text-gray-900">{value}</p>
     </div>
   );
 }

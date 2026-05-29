@@ -186,7 +186,7 @@ export interface HouseholdInvitation {
 
 export interface AppIntegration {
   id: number;
-  provider: 'snoop' | 'plaid' | 'truelayer' | 'manual';
+  provider: 'snoop' | 'whoop' | 'plaid' | 'truelayer' | 'manual';
   provider_display: string;
   status: 'connected' | 'disconnected' | 'error' | 'pending';
   status_display: string;

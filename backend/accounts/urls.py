@@ -10,6 +10,7 @@ from .views import (
     available_integrations,
     whoop_callback,
     whoop_connect,
+    whoop_health,
     whoop_sync,
     snoop_import,
     get_csrf_token,
@@ -31,6 +32,7 @@ urlpatterns = [
     path('whoop/connect/', whoop_connect, name='whoop-connect'),
     path('whoop/callback/', whoop_callback, name='whoop-callback'),
     path('whoop/sync/', whoop_sync, name='whoop-sync'),
+    path('whoop/health/', whoop_health, name='whoop-health'),
     path('snoop/import/', snoop_import, name='snoop-import'),
     path('', include(router.urls)),
 ]

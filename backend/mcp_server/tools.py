@@ -22,7 +22,8 @@ from decimal import Decimal
 from datetime import date, datetime
 from django.db.models import Sum
 from django.utils import timezone
-from accounts.models import User, Household
+from accounts.models import User, Household, AppIntegration
+from accounts.views import _build_whoop_health_summary
 from finance.models import (
     Portfolio, PortfolioSnapshot, SavingsGoal, HouseBudget,
     BudgetLineItem, Transaction
@@ -108,6 +109,45 @@ def get_financial_summary() -> dict:
             'saved': _round(saved),
             'progress_pct': _round(saved / target * 100, 1) if target > 0 else 0,
         },
+    }
+
+
+def get_whoop_health_summary(user_email: str = '') -> dict:
+    """
+    Get the latest WHOOP health snapshot for morning check-ins.
+    Returns compact daily, weekly, monthly and guidance fields.
+    """
+    query = AppIntegration.objects.filter(provider='whoop').exclude(status='disconnected')
+    if user_email:
+        query = query.filter(user__email=user_email)
+    integration = query.order_by('-last_sync_at', '-updated_at').first()
+    if not integration:
+        return {
+            'connected': False,
+            'status': 'disconnected',
+            'guidance': ['WHOOP is not connected yet.'],
+        }
+
+    summary = _build_whoop_health_summary(integration)
+    latest = summary.get('latest') or {}
+    periods = summary.get('periods') or {}
+    return {
+        'connected': summary.get('connected'),
+        'status': summary.get('status'),
+        'last_sync': summary.get('last_sync'),
+        'latest': {
+            'date': latest.get('date'),
+            'recovery': latest.get('recovery_score'),
+            'hrv': latest.get('hrv_rmssd_milli'),
+            'resting_heart_rate': latest.get('resting_heart_rate'),
+            'strain': latest.get('strain'),
+            'sleep_performance': latest.get('sleep_performance_percentage'),
+            'sleep_hours': latest.get('sleep_hours_in_bed'),
+        },
+        'daily': periods.get('day'),
+        'weekly': periods.get('week'),
+        'monthly': periods.get('month'),
+        'guidance': summary.get('guidance', []),
     }
 
 
@@ -528,6 +568,13 @@ TOOLS = {
         'function': get_financial_summary,
         'description': 'Get compact financial overview (net worth, emergency fund, goals). START HERE for general questions. ~300 tokens.',
         'parameters': {},
+    },
+    'get_whoop_health_summary': {
+        'function': get_whoop_health_summary,
+        'description': 'Latest WHOOP health summary for daily guidance and morning check-ins.',
+        'parameters': {
+            'user_email': {'type': 'string', 'description': 'Optional user email filter', 'default': ''},
+        },
     },
     'get_portfolios': {
         'function': get_portfolios,

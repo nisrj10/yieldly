@@ -71,6 +71,64 @@ def _whoop_request(path, access_token, params=None):
         return json.loads(response.read().decode('utf-8'))
 
 
+def _whoop_token_request(payload):
+    form = urlencode({
+        **payload,
+        'client_id': os.environ.get('WHOOP_CLIENT_ID', ''),
+        'client_secret': os.environ.get('WHOOP_CLIENT_SECRET', ''),
+    }).encode('utf-8')
+    token_request = Request(
+        WHOOP_TOKEN_URL,
+        data=form,
+        headers={
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': WHOOP_USER_AGENT,
+        },
+        method='POST',
+    )
+    with urlopen(token_request, timeout=20) as response:
+        return json.loads(response.read().decode('utf-8'))
+
+
+def _refresh_whoop_token(integration):
+    if not integration.refresh_token:
+        return integration.access_token
+
+    token_payload = _whoop_token_request({
+        'grant_type': 'refresh_token',
+        'refresh_token': integration.refresh_token,
+    })
+    integration.access_token = token_payload.get('access_token', integration.access_token)
+    integration.refresh_token = token_payload.get('refresh_token', integration.refresh_token)
+
+    expires_in = token_payload.get('expires_in')
+    integration.token_expires_at = (
+        timezone.now() + timedelta(seconds=int(expires_in))
+        if expires_in else None
+    )
+    integration.status = 'connected'
+    integration.sync_error = ''
+    integration.save(update_fields=[
+        'access_token',
+        'refresh_token',
+        'token_expires_at',
+        'status',
+        'sync_error',
+        'updated_at',
+    ])
+    return integration.access_token
+
+
+def _whoop_access_token(integration):
+    if (
+        integration.token_expires_at
+        and integration.token_expires_at <= timezone.now() + timedelta(minutes=5)
+    ):
+        return _refresh_whoop_token(integration)
+    return integration.access_token
+
+
 def _format_whoop_error(prefix, exc):
     if isinstance(exc, HTTPError):
         try:
@@ -103,6 +161,74 @@ def _safe_average(values):
     return round(sum(values) / len(values), 1)
 
 
+def _duration_hours(milliseconds):
+    if not milliseconds:
+        return None
+    return round(milliseconds / 1000 / 60 / 60, 2)
+
+
+def _whoop_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00')).date().isoformat()
+    except ValueError:
+        return value[:10]
+
+
+def _merge_daily_record(daily, day, values):
+    if not day:
+        return
+    record = daily.setdefault(day, {'date': day})
+    for key, value in values.items():
+        if value is not None:
+            record[key] = value
+
+
+def _period_summary(days):
+    days = [day for day in days if day]
+    if not days:
+        return None
+    return {
+        'days': len(days),
+        'avg_recovery': _safe_average([day.get('recovery_score') for day in days]),
+        'avg_hrv': _safe_average([day.get('hrv_rmssd_milli') for day in days]),
+        'avg_rhr': _safe_average([day.get('resting_heart_rate') for day in days]),
+        'avg_strain': _safe_average([day.get('strain') for day in days]),
+        'avg_sleep_performance': _safe_average([day.get('sleep_performance_percentage') for day in days]),
+        'avg_sleep_hours': _safe_average([day.get('sleep_hours_in_bed') for day in days]),
+    }
+
+
+def _guidance_from_summary(latest, periods):
+    recovery = latest.get('recovery_score')
+    sleep = latest.get('sleep_performance_percentage')
+    strain = latest.get('strain')
+    weekly = periods.get('week') or {}
+
+    focus = []
+    if recovery is not None and recovery >= 67:
+        focus.append('Green recovery: good day for important work or a controlled training push.')
+    elif recovery is not None and recovery < 34:
+        focus.append('Low recovery: keep strain light, hydrate, and protect sleep tonight.')
+    elif recovery is not None:
+        focus.append('Moderate recovery: normal work is fine, but avoid stacking hard training with a late night.')
+
+    if sleep is not None and sleep < 70:
+        focus.append('Sleep is the limiter today; make an earlier night the main intervention.')
+    elif sleep is not None and sleep >= 85:
+        focus.append('Sleep supported recovery well; maintain the routine that produced it.')
+
+    if strain is not None and strain >= 14:
+        focus.append('Yesterday was high strain, so watch for delayed fatigue today.')
+
+    weekly_sleep = weekly.get('avg_sleep_hours')
+    if weekly_sleep is not None and weekly_sleep < 6.5:
+        focus.append('This week is carrying sleep debt; schedule at least one 8 hour recovery night.')
+
+    return focus[:4] or ['No strong warning signs in the latest WHOOP snapshot. Keep routines steady.']
+
+
 def _summarize_whoop_data(cycles, recoveries, sleeps):
     scored_recoveries = [
         item for item in recoveries
@@ -128,7 +254,61 @@ def _summarize_whoop_data(cycles, recoveries, sleeps):
         for item in scored_sleeps
     ]
 
-    return {
+    daily = {}
+    cycle_dates = {}
+    for item in scored_cycles:
+        score = item.get('score', {})
+        day = _whoop_date(item.get('start'))
+        cycle_id = item.get('id')
+        if cycle_id is not None and day:
+            cycle_dates[str(cycle_id)] = day
+        _merge_daily_record(daily, day, {
+            'cycle_id': item.get('id'),
+            'strain': score.get('strain'),
+            'average_heart_rate': score.get('average_heart_rate'),
+            'max_heart_rate': score.get('max_heart_rate'),
+            'kilojoule': score.get('kilojoule'),
+        })
+
+    for item in scored_recoveries:
+        score = item.get('score', {})
+        day = cycle_dates.get(str(item.get('cycle_id'))) or _whoop_date(item.get('created_at') or item.get('updated_at'))
+        _merge_daily_record(daily, day, {
+            'recovery_score': score.get('recovery_score'),
+            'hrv_rmssd_milli': score.get('hrv_rmssd_milli'),
+            'resting_heart_rate': score.get('resting_heart_rate'),
+            'spo2_percentage': score.get('spo2_percentage'),
+            'skin_temp_celsius': score.get('skin_temp_celsius'),
+        })
+
+    for item in scored_sleeps:
+        score = item.get('score', {})
+        stages = score.get('stage_summary', {})
+        day = cycle_dates.get(str(item.get('cycle_id'))) or _whoop_date(item.get('end') or item.get('start'))
+        _merge_daily_record(daily, day, {
+            'sleep_performance_percentage': score.get('sleep_performance_percentage'),
+            'sleep_efficiency_percentage': score.get('sleep_efficiency_percentage'),
+            'sleep_consistency_percentage': score.get('sleep_consistency_percentage'),
+            'sleep_hours_in_bed': _duration_hours(stages.get('total_in_bed_time_milli')),
+            'awake_hours': _duration_hours(stages.get('total_awake_time_milli')),
+            'rem_hours': _duration_hours(stages.get('total_rem_sleep_time_milli')),
+            'light_hours': _duration_hours(stages.get('total_light_sleep_time_milli')),
+            'deep_hours': _duration_hours(stages.get('total_slow_wave_sleep_time_milli')),
+            'disturbance_count': score.get('disturbance_count'),
+            'sleep_cycle_count': score.get('sleep_cycle_count'),
+            'respiratory_rate': score.get('respiratory_rate'),
+        })
+
+    daily_rows = sorted(daily.values(), key=lambda item: item['date'], reverse=True)
+    latest_day = daily_rows[0] if daily_rows else {}
+    trend = list(reversed(daily_rows[:30]))
+    periods = {
+        'day': _period_summary(daily_rows[:1]),
+        'week': _period_summary(daily_rows[:7]),
+        'month': _period_summary(daily_rows[:30]),
+    }
+
+    summary = {
         'updated_at': timezone.now().isoformat(),
         'records': {
             'cycles': len(cycles),
@@ -154,6 +334,78 @@ def _summarize_whoop_data(cycles, recoveries, sleeps):
             'cycle': scored_cycles[0] if scored_cycles else None,
             'sleep': scored_sleeps[0] if scored_sleeps else None,
         },
+        'health': {
+            'latest': latest_day,
+            'periods': periods,
+            'trend': trend,
+            'recent_days': daily_rows[:14],
+            'guidance': _guidance_from_summary(latest_day, periods),
+        },
+    }
+    return summary
+
+
+def _build_whoop_health_summary(integration):
+    summary = (integration.metadata or {}).get('summary') or {}
+    health = summary.get('health') or {}
+    latest = health.get('latest') or {}
+    periods = health.get('periods') or {}
+
+    if not health:
+        latest_recovery = (summary.get('latest') or {}).get('recovery') or {}
+        latest_cycle = (summary.get('latest') or {}).get('cycle') or {}
+        latest_sleep = (summary.get('latest') or {}).get('sleep') or {}
+        recovery_score = latest_recovery.get('score', {})
+        cycle_score = latest_cycle.get('score', {})
+        sleep_score = latest_sleep.get('score', {})
+        stages = sleep_score.get('stage_summary', {})
+        latest = {
+            'date': _whoop_date(latest_cycle.get('start') or latest_sleep.get('end')),
+            'recovery_score': recovery_score.get('recovery_score'),
+            'hrv_rmssd_milli': recovery_score.get('hrv_rmssd_milli'),
+            'resting_heart_rate': recovery_score.get('resting_heart_rate'),
+            'strain': cycle_score.get('strain'),
+            'average_heart_rate': cycle_score.get('average_heart_rate'),
+            'max_heart_rate': cycle_score.get('max_heart_rate'),
+            'sleep_performance_percentage': sleep_score.get('sleep_performance_percentage'),
+            'sleep_efficiency_percentage': sleep_score.get('sleep_efficiency_percentage'),
+            'sleep_hours_in_bed': _duration_hours(stages.get('total_in_bed_time_milli')),
+            'respiratory_rate': sleep_score.get('respiratory_rate'),
+            'spo2_percentage': recovery_score.get('spo2_percentage'),
+            'skin_temp_celsius': recovery_score.get('skin_temp_celsius'),
+        }
+        day_summary = _period_summary([latest])
+        record_counts = list((summary.get('records') or {}).values())
+        periods = {
+            'day': day_summary,
+            'week': day_summary,
+            'month': {
+                'days': max(record_counts) if record_counts else 0,
+                'avg_recovery': (summary.get('averages') or {}).get('recovery_score'),
+                'avg_hrv': (summary.get('averages') or {}).get('hrv_rmssd_milli'),
+                'avg_rhr': (summary.get('averages') or {}).get('resting_heart_rate'),
+                'avg_strain': (summary.get('averages') or {}).get('strain'),
+                'avg_sleep_performance': (summary.get('averages') or {}).get('sleep_performance_percentage'),
+                'avg_sleep_hours': (summary.get('averages') or {}).get('sleep_hours_in_bed'),
+            }
+        }
+        health = {
+            'latest': latest,
+            'periods': periods,
+            'trend': [],
+            'recent_days': [],
+            'guidance': _guidance_from_summary(latest, periods),
+        }
+
+    return {
+        'connected': integration.status == 'connected',
+        'status': integration.status,
+        'last_sync': integration.last_sync_at,
+        'sync_error': integration.sync_error,
+        'account': ((integration.metadata or {}).get('profile') or {}).get('email'),
+        'records': summary.get('records', {}),
+        'updated_at': summary.get('updated_at'),
+        **health,
     }
 
 
@@ -473,27 +725,12 @@ def whoop_callback(request):
     if not integration:
         return Response({'error': 'Invalid WHOOP OAuth state'}, status=status.HTTP_400_BAD_REQUEST)
 
-    form = urlencode({
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': _whoop_redirect_uri(request),
-        'client_id': os.environ.get('WHOOP_CLIENT_ID', ''),
-        'client_secret': os.environ.get('WHOOP_CLIENT_SECRET', ''),
-    }).encode('utf-8')
-
     try:
-        token_request = Request(
-            WHOOP_TOKEN_URL,
-            data=form,
-            headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': WHOOP_USER_AGENT,
-            },
-            method='POST',
-        )
-        with urlopen(token_request, timeout=20) as response:
-            token_payload = json.loads(response.read().decode('utf-8'))
+        token_payload = _whoop_token_request({
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': _whoop_redirect_uri(request),
+        })
     except (HTTPError, URLError, TimeoutError) as exc:
         integration.status = 'error'
         integration.sync_error = _format_whoop_error('WHOOP token exchange failed', exc)
@@ -548,9 +785,18 @@ def whoop_sync(request):
         end = timezone.now().isoformat()
 
     try:
-        cycles = _whoop_paginated('/cycle', integration.access_token, {'start': start, 'end': end})
-        recoveries = _whoop_paginated('/recovery', integration.access_token, {'start': start, 'end': end})
-        sleeps = _whoop_paginated('/activity/sleep', integration.access_token, {'start': start, 'end': end})
+        access_token = _whoop_access_token(integration)
+        try:
+            cycles = _whoop_paginated('/cycle', access_token, {'start': start, 'end': end})
+            recoveries = _whoop_paginated('/recovery', access_token, {'start': start, 'end': end})
+            sleeps = _whoop_paginated('/activity/sleep', access_token, {'start': start, 'end': end})
+        except HTTPError as exc:
+            if exc.code != 401:
+                raise
+            access_token = _refresh_whoop_token(integration)
+            cycles = _whoop_paginated('/cycle', access_token, {'start': start, 'end': end})
+            recoveries = _whoop_paginated('/recovery', access_token, {'start': start, 'end': end})
+            sleeps = _whoop_paginated('/activity/sleep', access_token, {'start': start, 'end': end})
         summary = _summarize_whoop_data(cycles, recoveries, sleeps)
     except Exception as exc:
         integration.status = 'error'
@@ -569,6 +815,16 @@ def whoop_sync(request):
     integration.save()
 
     return Response({'message': 'WHOOP sync completed', 'summary': summary})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def whoop_health(request):
+    """Return the latest WHOOP health summary for dashboards and agents."""
+    integration = AppIntegration.objects.filter(user=request.user, provider='whoop').first()
+    if not integration:
+        return Response({'connected': False, 'status': 'disconnected'}, status=status.HTTP_200_OK)
+    return Response(_build_whoop_health_summary(integration))
 
 
 @api_view(['POST'])
