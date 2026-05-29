@@ -91,6 +91,51 @@ const patterns = [
   },
 ];
 
+const whoopData = [
+  {
+    metric: 'Sleep duration',
+    april: '7.2-7.4 hrs/night average',
+    may: 'More 3-6 hr nights',
+    signal: 'May is carrying more sleep debt',
+  },
+  {
+    metric: 'Sleep performance',
+    april: 'Mostly 70-80%',
+    may: 'More often 50-70%',
+    signal: 'Sleep quality and consistency dropped',
+  },
+  {
+    metric: 'HRV',
+    april: 'Often mid-20s to low-30s',
+    may: 'High-20s to mid-30s, some 40+ days',
+    signal: 'Autonomic recovery improved',
+  },
+  {
+    metric: 'Resting heart rate',
+    april: 'Frequently in the 70s early month',
+    may: 'More often low-60s',
+    signal: 'Cardiovascular baseline improved',
+  },
+  {
+    metric: 'Recovery colors',
+    april: 'Several reds: 8%, 14%, 24%, 31%; yellows; greens up to 80-94%',
+    may: 'Reds still present: 9-33%; stronger late-month greens: 73%, 81%, 85%, 95%',
+    signal: 'Better upside in May, still vulnerable after poor sleep',
+  },
+  {
+    metric: 'Strain',
+    april: 'Repeated 11-17 days; many above 14 including 16.8, 16.0, 15.2',
+    may: 'More days in 5-10 range; periodic 12-14.2 and 14+ days',
+    signal: 'Training/load management improved',
+  },
+  {
+    metric: 'Non-activity stress',
+    april: 'Several days with 3-7+ hrs high stress, especially Apr 1-3, 6, 9-12',
+    may: 'Big stress days on May 10, 12, 14-16, 18, 21, 25',
+    signal: 'Still high, but less extreme than early April',
+  },
+];
+
 const statusStyles = {
   improved: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   watch: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -161,6 +206,42 @@ export default function HealthTracking() {
           <p className="mt-1 text-sm text-gray-600">Less extreme, still a driver.</p>
         </div>
       </div>
+
+      <section className="card">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Whoop Data Snapshot</h2>
+            <p className="text-sm text-gray-600">
+              Last full month April compared with May month-to-date.
+            </p>
+          </div>
+          <span className="w-fit rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+            Source: Whoop summary
+          </span>
+        </div>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[780px] text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left">
+                <th className="py-3 pr-4 font-medium text-gray-500">Metric</th>
+                <th className="px-4 py-3 font-medium text-gray-500">April</th>
+                <th className="px-4 py-3 font-medium text-gray-500">May so far</th>
+                <th className="py-3 pl-4 font-medium text-gray-500">Signal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {whoopData.map((row) => (
+                <tr key={row.metric} className="border-b border-gray-100 last:border-0">
+                  <td className="py-4 pr-4 font-semibold text-gray-900">{row.metric}</td>
+                  <td className="px-4 py-4 leading-6 text-gray-600">{row.april}</td>
+                  <td className="px-4 py-4 leading-6 text-gray-600">{row.may}</td>
+                  <td className="py-4 pl-4 leading-6 text-gray-700">{row.signal}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {metrics.map((metric) => {
