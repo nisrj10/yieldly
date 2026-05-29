@@ -432,13 +432,14 @@ def whoop_connect(request):
     }
     integration.save()
 
-    auth_url = f"{WHOOP_AUTH_URL}?{urlencode({
+    auth_params = {
         'client_id': client_id,
         'redirect_uri': _whoop_redirect_uri(request),
         'response_type': 'code',
         'scope': WHOOP_SCOPES,
         'state': oauth_state,
-    })}"
+    }
+    auth_url = f"{WHOOP_AUTH_URL}?{urlencode(auth_params)}"
 
     return Response({'auth_url': auth_url})
 
