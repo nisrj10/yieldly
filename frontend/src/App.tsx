@@ -13,6 +13,7 @@ import Integrations from './pages/Integrations';
 import HouseBudget from './pages/HouseBudget';
 import Reports from './pages/Reports';
 import HealthTracking from './pages/HealthTracking';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -53,6 +54,10 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      <Route
+        path="/privacy"
+        element={<PrivacyPolicy />}
+      />
       <Route
         path="/login"
         element={
