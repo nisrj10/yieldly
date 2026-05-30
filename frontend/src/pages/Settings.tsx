@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { financeApi, authApi } from '../api/client';
 import type { Account, Category, Household, HouseholdInvitation } from '../types';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { formatCurrency } from '../utils/format';
 import {
   Plus,

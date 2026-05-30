@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { financeApi } from '../api/client';
 import { formatCurrency } from '../utils/format';
 import {
@@ -128,13 +128,7 @@ export default function HouseBudget() {
     loadBudget();
   }, []);
 
-  useEffect(() => {
-    if (activeTab === 'history' && budget && history.length === 0) {
-      loadHistory();
-    }
-  }, [activeTab, budget]);
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     if (!budget) return;
     setLoadingHistory(true);
     try {
@@ -145,7 +139,13 @@ export default function HouseBudget() {
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [budget]);
+
+  useEffect(() => {
+    if (activeTab === 'history' && budget && history.length === 0) {
+      loadHistory();
+    }
+  }, [activeTab, budget, history.length, loadHistory]);
 
   const loadBudget = async () => {
     try {
@@ -598,7 +598,7 @@ export default function HouseBudget() {
                           />
                           <select
                             value={editValues.split_type ?? item.split_type}
-                            onChange={(e) => setEditValues({ ...editValues, split_type: e.target.value as any })}
+                            onChange={(e) => setEditValues({ ...editValues, split_type: e.target.value as BudgetLineItem['split_type'] })}
                             className="input w-36"
                           >
                             <option value="shared">Shared</option>

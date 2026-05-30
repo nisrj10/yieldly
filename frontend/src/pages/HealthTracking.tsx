@@ -161,7 +161,7 @@ export default function HealthTracking() {
     try {
       const response = await authApi.getWhoopHealth();
       setHealth(response.data);
-    } catch (err) {
+    } catch {
       setError('Could not load WHOOP health data.');
     } finally {
       setLoading(false);

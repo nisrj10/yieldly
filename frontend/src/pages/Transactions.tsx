@@ -34,26 +34,6 @@ export default function Transactions() {
     loadData();
   }, []);
 
-  // Infinite scroll observer
-  useEffect(() => {
-    if (loading) return;
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observerRef.current.observe(loadMoreRef.current);
-    }
-
-    return () => observerRef.current?.disconnect();
-  }, [loading, hasMore, loadingMore, transactions.length]);
-
   const loadData = async () => {
     try {
       const [txRes, accRes, catRes] = await Promise.all([
@@ -93,6 +73,26 @@ export default function Transactions() {
       setLoadingMore(false);
     }
   }, [loadingMore, hasMore, transactions.length, totalCount]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (loading) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => observerRef.current?.disconnect();
+  }, [loading, hasMore, loadingMore, loadMore]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
