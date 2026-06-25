@@ -39,6 +39,24 @@ WHOOP_SCOPES = 'offline read:profile read:recovery read:cycles read:sleep read:w
 WHOOP_USER_AGENT = 'Yieldly/1.0 (+https://yiedly-backend-fcbb8734fb56.herokuapp.com)'
 SNOOP_EXPORT_HELP_URL = 'https://snoopadmin.zendesk.com/hc/en-gb/articles/18255143766429-Can-I-export-my-transactions-from-Snoop'
 SNOOP_CONTACT_EMAIL = 'hello@snoop.app'
+SNOOP_TRANSFER_EXPENSE_CATEGORIES = {'internal transfers', 'investment'}
+SNOOP_EXPENSE_OVERRIDES = {
+    'virgin money': ('Internal Transfers', 'transfer'),
+    'nishant raj': ('Internal Transfers', 'transfer'),
+    'ns&i': ('Investment', 'transfer'),
+    'churchill insurance': ('Insurances', 'expense'),
+    'amorino': ('Eating Out', 'expense'),
+    'martonela': ('Eating Out', 'expense'),
+    'mr john c northrop': ('Home & Family', 'expense'),
+    'the lawn people ch': ('Home & Family', 'expense'),
+    'cba*parallels': ('VTL Subscriptions', 'expense'),
+    'gosimpletax': ('Finances', 'expense'),
+    'lovable': ('AI-IF expenses', 'expense'),
+    'google cloud': ('AI-IF expenses', 'expense'),
+    'tenpin': ('Entertainment', 'expense'),
+    'plaza premium lounge': ('Travel', 'expense'),
+    'remarkable as': ('AI-IF expenses', 'expense'),
+}
 
 
 def _app_base_url(request):
@@ -1008,7 +1026,7 @@ def snoop_import(request):
     snoop_expense_categories = [
         'Eating Out', 'Groceries', 'Shopping', 'Transport', 'Entertainment',
         'Home & Family', 'Health & Beauty', 'Travel', 'Insurances', 'Childcare',
-        'General', 'Business', 'Investment', 'AI-IF expenses', 'VTL T&S',
+        'General', 'Business', 'Finances', 'Investment', 'AI-IF expenses', 'VTL T&S',
         'VTL Subscriptions', 'Internal Transfers'
     ]
     snoop_income_categories = ['Income', 'Salary', 'Internal Transfers']
@@ -1083,6 +1101,13 @@ def snoop_import(request):
 
             # Use merchant name or description
             trans_description = merchant or description or 'Snoop Import'
+            if trans_type == 'expense':
+                override = SNOOP_EXPENSE_OVERRIDES.get(trans_description.lower())
+                if override:
+                    override_category_name, trans_type = override
+                    category = category_map.get(override_category_name.lower(), category)
+                elif category_name.lower() in SNOOP_TRANSFER_EXPENSE_CATEGORIES:
+                    trans_type = 'transfer'
 
             # Dedup: skip if matching transaction exists
             existing = Transaction.objects.filter(
@@ -1110,9 +1135,9 @@ def snoop_import(request):
             transactions_created += 1
 
             # Update account balance
-            if trans_type == 'expense':
+            if trans_type in ['expense', 'transfer']:
                 account.balance -= amount
-            else:
+            elif trans_type == 'income':
                 account.balance += amount
 
         except Exception as e:
